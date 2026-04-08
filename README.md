@@ -5,8 +5,8 @@ This project make for Software Development Practice II
 Step 1: Clone project to your local machine
 ``` bash
 cd ${WORKDIR}
-git clone https://github.com/machi-cu-68-2/fe-project-68-frontstart.git
-cd fe-project-68-frontstart
+git clone https://github.com/2110503-CEDT68/se-project-fe-68-2-ruaymaiwailaew.git
+cd se-project-fe-68-2-ruaymaiwailaew
 ```
 
 Step 2: Install npm packages
@@ -32,3 +32,9 @@ npm start
 - [6833295221 Auraion Pinsiri](https://github.com/bmybest)
 - [6833085821 Natpakan Sainam](https://github.com/EnxFad)
 - [6833063021 Thitipong Phuangphet](https://github.com/Thitipong-PP)
+- [6833112021 Tanawat Srisukphrom](https://github.com/AiMlxV)
+- [6833283721 Ananyarat Hariruk]()
+- [6833273421 Suwapat Suwattanametee](https://github.com/SuwapatSu)
+- [6833263121 Siraphop Meethong]()
+- [6833259721 Sorrapat Chiraprapoosak]()
+- [6833240721 Wachirawit Pattha]()
