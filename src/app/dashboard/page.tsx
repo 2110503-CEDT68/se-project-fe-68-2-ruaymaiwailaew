@@ -64,6 +64,8 @@ export default function DashboardPage() {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
+    if (!session?.accessToken) return;
+
     const loadDentists = async () => {
       try {
         const data = await fetchDentists();
@@ -79,7 +81,7 @@ export default function DashboardPage() {
           );
         }
       } catch (error) {
-        console.error('Failed to load dentists:', error);
+        console.error("Failed to load dentists:", error);
       } finally {
         setLoadingDentists(false);
       }

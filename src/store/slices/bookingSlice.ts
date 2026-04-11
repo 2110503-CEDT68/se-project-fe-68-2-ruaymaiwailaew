@@ -1,6 +1,6 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { fetchDentist } from '../../data/dentists';
-import { RootState } from '..';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { fetchDentist } from "../../data/dentists";
+import { RootState } from "..";
 
 export interface Booking {
   id: string;
@@ -15,15 +15,15 @@ export interface Booking {
 
 interface BookingState {
   items: Booking[];
-  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  status: "idle" | "loading" | "succeeded" | "failed";
 }
 
 const initialState: BookingState = {
   items: [],
-  status: 'idle',
+  status: "idle",
 };
 
-const STORAGE_KEY = 'bookings';
+const STORAGE_KEY = "bookings";
 
 const saveToStorage = (bookings: Booking[]) =>
   localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
@@ -38,13 +38,15 @@ const normalizeUserId = (user: any) => {
 const normalizeDentistId = (dentist: any) => {
   if (!dentist) return "";
   if (typeof dentist === "string") return dentist;
-  if (typeof dentist === "object") return String(dentist._id ?? dentist.id ?? "");
+  if (typeof dentist === "object")
+    return String(dentist._id ?? dentist.id ?? "");
   return "";
 };
 
 const toISODate = (dateValue: any) => {
   if (!dateValue) return "";
-  const normalized = typeof dateValue === "string" ? dateValue.trim() : String(dateValue);
+  const normalized =
+    typeof dateValue === "string" ? dateValue.trim() : String(dateValue);
   const d = new Date(normalized);
   if (Number.isNaN(d.getTime())) return "";
   return d.toISOString();
@@ -64,26 +66,29 @@ const normalizeBookingPayload = (b: any) => ({
 
 // ── Thunks ────────────────────────────────────────────────────────────────────
 
-export const loadBookings = createAsyncThunk('bookings/load', async (token: string) => {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  const data = await res.json();
-  return (data.data || []).map((b: any) => normalizeBookingPayload(b));
-});
+export const loadBookings = createAsyncThunk(
+  "bookings/load",
+  async (token: string) => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    return (data.data || []).map((b: any) => normalizeBookingPayload(b));
+  },
+);
 
 export const createBooking = createAsyncThunk(
-  'bookings/create',
+  "bookings/create",
   async (
     payload: { dentistId: string; date: string; token: string },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${payload.token}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${payload.token}`,
         },
         body: JSON.stringify({
           bookingDate: payload.date,
@@ -95,68 +100,82 @@ export const createBooking = createAsyncThunk(
       if (!res.ok) return rejectWithValue(data.message);
       return normalizeBookingPayload(data.data);
     } catch (err) {
-      return rejectWithValue('Network error');
+      return rejectWithValue("Network error");
     }
-  }
+  },
 );
 
 export const updateBooking = createAsyncThunk(
-  'bookings/update',
+  "bookings/update",
   async (
-    payload: { bookingId: string; dentistId: string; date: string; token: string },
-    { rejectWithValue }
+    payload: {
+      bookingId: string;
+      dentistId: string;
+      date: string;
+      token: string;
+    },
+    { rejectWithValue },
   ) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings/${payload.bookingId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${payload.token}`,
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/bookings/${payload.bookingId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${payload.token}`,
+          },
+          body: JSON.stringify({
+            bookingDate: payload.date,
+            dentist: payload.dentistId,
+          }),
         },
-        body: JSON.stringify({
-          bookingDate: payload.date,
-          dentist: payload.dentistId,
-        }),
-      });
+      );
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data.message);
       return normalizeBookingPayload(data.data);
     } catch (err) {
-      return rejectWithValue('Network error');
+      return rejectWithValue("Network error");
     }
-  }
+  },
 );
 
 export const deleteBooking = createAsyncThunk(
-  'bookings/delete',
-  async (payload: { bookingId: string; token: string }, { rejectWithValue }) => {
+  "bookings/delete",
+  async (
+    payload: { bookingId: string; token: string },
+    { rejectWithValue },
+  ) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings/${payload.bookingId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${payload.token}` },
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/bookings/${payload.bookingId}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${payload.token}` },
+        },
+      );
       if (!res.ok) {
         const data = await res.json();
         return rejectWithValue(data.message);
       }
       return payload.bookingId;
     } catch (err) {
-      return rejectWithValue('Network error');
+      return rejectWithValue("Network error");
     }
-  }
+  },
 );
 
 // ── Slice ─────────────────────────────────────────────────────────────────────
 
 const bookingSlice = createSlice({
-  name: 'bookings',
+  name: "bookings",
   initialState,
   reducers: {},
   extraReducers: (builder) => {
     builder
       .addCase(loadBookings.fulfilled, (state, action) => {
         state.items = action.payload;
-        state.status = 'succeeded';
+        state.status = "succeeded";
       })
       .addCase(createBooking.fulfilled, (state, action) => {
         state.items.push(action.payload);
@@ -174,9 +193,7 @@ const bookingSlice = createSlice({
 export default bookingSlice.reducer;
 
 // Selectors
-export const selectAllBookings = (state: RootState) =>
-  state.bookings.items;
+export const selectAllBookings = (state: RootState) => state.bookings.items;
 
-export const selectUserBooking = (userId: string) =>
-  (state: RootState) =>
-    state.bookings.items.find((b) => b.userId === userId) ?? null;
+export const selectUserBooking = (userId: string) => (state: RootState) =>
+  state.bookings.items.find((b) => b.userId === userId) ?? null;

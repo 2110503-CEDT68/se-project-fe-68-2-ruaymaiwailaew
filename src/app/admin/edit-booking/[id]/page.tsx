@@ -3,7 +3,11 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useAppDispatch, useAppSelector } from "@/store";
-import { loadBookings, selectAllBookings, updateBooking } from "@/store/slices/bookingSlice";
+import {
+  loadBookings,
+  selectAllBookings,
+  updateBooking,
+} from "@/store/slices/bookingSlice";
 import { fetchDentists, type Dentist } from "@/data/dentists";
 import MuiButton from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
@@ -52,6 +56,8 @@ export default function EditBookingPage() {
   }, [session, router]);
 
   useEffect(() => {
+    if (!session?.accessToken) return;
+
     const loadDentists = async () => {
       try {
         const data = await fetchDentists();
@@ -62,7 +68,7 @@ export default function EditBookingPage() {
       }
     };
     loadDentists();
-  }, []);
+  }, [session?.accessToken]);
 
   useEffect(() => {
     if (session?.accessToken) {

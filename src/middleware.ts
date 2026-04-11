@@ -22,7 +22,7 @@ export const middleware = withAuth(
           req.nextUrl.pathname.startsWith("/dashboard") ||
           req.nextUrl.pathname.startsWith("/create-booking") ||
           req.nextUrl.pathname.startsWith("/my-booking") ||
-          req.nextUrl.pathname.startsWith("/dentist")
+          req.nextUrl.pathname.startsWith("/dentist-appointments")
         ) {
           return !!token;
         }
