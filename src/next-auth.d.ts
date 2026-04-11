@@ -6,7 +6,7 @@ declare module "next-auth" {
     email: string;
     name: string;
     telephone?: string;
-    role: "user" | "admin";
+    role: "user" | "admin" | "dentist";
     accessToken?: string;
   }
 
@@ -22,7 +22,7 @@ declare module "next-auth/jwt" {
     email: string;
     name: string;
     telephone?: string;
-    role: "user" | "admin";
+    role: "user" | "admin" | "dentist";
     accessToken?: string;
   }
 }

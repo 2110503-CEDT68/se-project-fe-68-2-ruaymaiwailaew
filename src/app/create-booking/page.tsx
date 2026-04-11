@@ -20,7 +20,11 @@ import {
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useAppDispatch, useAppSelector } from "@/store";
-import { createBooking, loadBookings, selectAllBookings } from "@/store/slices/bookingSlice";
+import {
+  createBooking,
+  loadBookings,
+  selectAllBookings,
+} from "@/store/slices/bookingSlice";
 import { selectAllReviews } from "@/store/slices/reviewSlice";
 import { fetchDentists, type Dentist } from "@/data/dentists";
 import { toast } from "sonner";
@@ -40,22 +44,26 @@ export default function CreateBookingPage() {
   const allBookings = useAppSelector(selectAllBookings);
   const allReviews = useAppSelector(selectAllReviews);
   const currentUserId = user?.id ? String(user.id) : "";
-  const hasExistingBooking = allBookings.some((b) => String(b.userId) === currentUserId);
+  const hasExistingBooking = allBookings.some(
+    (b) => String(b.userId) === currentUserId,
+  );
 
   useEffect(() => {
+    if (!session) return;
+
     const loadDentists = async () => {
       try {
         const data = await fetchDentists();
         setDentistsList(data);
       } catch (error) {
-        console.error('Failed to load dentists:', error);
-        toast.error('Failed to load dentists');
+        console.error("Failed to load dentists:", error);
+        toast.error("Failed to load dentists");
       } finally {
         setLoadingDentists(false);
       }
     };
     loadDentists();
-  }, []);
+  }, [session]);
 
   useEffect(() => {
     if (session?.accessToken) {
@@ -220,7 +228,9 @@ export default function CreateBookingPage() {
                       >
                         <MenuItem value="" disabled>
                           <span className="text-slate-400">
-                            {loadingDentists ? "Loading dentists..." : "Select a dentist..."}
+                            {loadingDentists
+                              ? "Loading dentists..."
+                              : "Select a dentist..."}
                           </span>
                         </MenuItem>
                         {dentistsList.map((d) => (
