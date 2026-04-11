@@ -158,6 +158,21 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
                     Admin
                   </MuiButton>
                 )}
+                {userRole === "dentist" && (
+                  <MuiButton
+                    startIcon={<Calendar size={16} />}
+                    onClick={() => router.push("/dentist-appointments")}
+                    color="inherit"
+                    sx={{
+                      color: "#475569",
+                      "&:hover": { color: "#2563eb", bgcolor: "#eff6ff" },
+                      borderRadius: 2,
+                      px: 1.5,
+                    }}
+                  >
+                    My Appointments
+                  </MuiButton>
+                )}
               </>
             )}
             {variant === "admin" && (
@@ -317,6 +332,28 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
                 </ListItemButton>
               </ListItem>
             </>
+          )}
+          {variant === "user" && userRole === "dentist" && (
+            <ListItem disablePadding>
+              <ListItemButton
+                onClick={() => {
+                  router.push("/dentist-appointments");
+                  setDrawerOpen(false);
+                }}
+                sx={{ borderRadius: 2, mb: 0.5 }}
+              >
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <Calendar size={18} color="#64748b" />
+                </ListItemIcon>
+                <ListItemText
+                  primary="My Appointments"
+                  primaryTypographyProps={{
+                    fontSize: "0.875rem",
+                    color: "#374151",
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
           )}
           {variant === "admin" && (
             <ListItem disablePadding>

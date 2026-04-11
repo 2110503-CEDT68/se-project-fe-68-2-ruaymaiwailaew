@@ -43,7 +43,8 @@ export default function MyBooking() {
   const allBookings = useAppSelector(selectAllBookings);
   const allReviews = useAppSelector(selectAllReviews);
   const currentUserId = user?.id ? String(user.id) : "";
-  const booking = allBookings.find((b) => String(b.userId) === currentUserId) ?? null;
+  const booking =
+    allBookings.find((b) => String(b.userId) === currentUserId) ?? null;
 
   const [isEditing, setIsEditing] = useState(false);
   const [editDate, setEditDate] = useState(booking?.date ?? "");
@@ -53,24 +54,26 @@ export default function MyBooking() {
   const [loadingDentists, setLoadingDentists] = useState(true);
 
   useEffect(() => {
+    if (!session) return;
+
     const loadDentists = async () => {
       try {
         const data = await fetchDentists();
         setDentistsList(data);
       } catch (error) {
-        console.error('Failed to load dentists:', error);
-        toast.error('Failed to load dentists');
+        console.error("Failed to load dentists:", error);
+        toast.error("Failed to load dentists");
       } finally {
         setLoadingDentists(false);
       }
     };
     loadDentists();
-  }, []);
+  }, [session]);
 
   useEffect(() => {
-  if (session?.accessToken) {
-    dispatch(loadBookings(session.accessToken));
-  }
+    if (session?.accessToken) {
+      dispatch(loadBookings(session.accessToken));
+    }
   }, [session]);
 
   const safeDentists = Array.isArray(dentistsList) ? dentistsList : [];
@@ -115,10 +118,12 @@ export default function MyBooking() {
   };
 
   const handleDelete = async () => {
-    await dispatch(deleteBooking({
-      bookingId: booking!.id,
-      token: session?.accessToken || "",
-    }));
+    await dispatch(
+      deleteBooking({
+        bookingId: booking!.id,
+        token: session?.accessToken || "",
+      }),
+    );
     toast.success("Booking cancelled successfully");
     router.push("/dashboard");
   };
@@ -355,7 +360,9 @@ export default function MyBooking() {
                 variant="outlined"
                 startIcon={<Edit size={16} />}
                 onClick={() => {
-                  const bookingDate = booking.date ? booking.date.split('T')[0] : '';
+                  const bookingDate = booking.date
+                    ? booking.date.split("T")[0]
+                    : "";
                   setEditDate(bookingDate);
                   setEditDentistId(booking.dentistId);
                   setIsEditing(true);
