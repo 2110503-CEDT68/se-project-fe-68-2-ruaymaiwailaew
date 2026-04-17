@@ -7,7 +7,7 @@ import Chip from "@mui/material/Chip";
 import Rating from "@mui/material/Rating";
 import InputAdornment from "@mui/material/InputAdornment";
 import {
-  Calendar,
+  Calendar as CalendarIcon, // เปลี่ยนชื่อเพื่อไม่ให้ซ้ำกับตัวแปรอื่นถ้ามี
   Award,
   Search,
   ChevronRight,
@@ -17,6 +17,9 @@ import { useSession } from "next-auth/react";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { selectAllReviews, loadReviews } from "@/store/slices/reviewSlice";
 import { fetchDentists, type Dentist } from "@/data/dentists";
+
+// TODO: แก้ไข Path ให้ตรงกับที่เก็บไฟล์ BookingCalendar.tsx ของคุณ
+import BookingCalendar from "@/components/BookingCalendar";
 
 const expertiseColors: Record<
   string,
@@ -139,7 +142,7 @@ export default function DashboardPage() {
             <MuiButton
               variant="contained"
               onClick={() => router.push("/create-booking")}
-              startIcon={<Calendar size={16} />}
+              startIcon={<CalendarIcon size={16} />}
               sx={{
                 bgcolor: "white",
                 color: "#2563eb",
@@ -157,6 +160,13 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        {/* --- เพิ่ม Calendar Component ตรงนี้ --- */}
+        <div className="mb-12">
+          <BookingCalendar />
+        </div>
+        {/* ------------------------------------- */}
+
         {/* Section Header + Search */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
