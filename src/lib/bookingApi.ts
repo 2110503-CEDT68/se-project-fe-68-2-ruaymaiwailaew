@@ -108,8 +108,21 @@ export async function getBookings(token: string): Promise<BookingPayload[]> {
   const res = await fetch(`${BASE_URL}/bookings`, {
     headers: authHeaders(token),
   });
+  
+  // ✅ log raw response status
+  console.log("📡 Status:", res.status, res.statusText);
+  
   const data = await handleResponse<{ data: any[] }>(res);
-  return (data.data ?? []).map(normalizeBooking);
+  
+  // ✅ log ข้อมูลดิบจาก API
+  console.log("📦 Raw data:", JSON.stringify(data, null, 2));
+  
+  const mapped = (data.data ?? []).map(normalizeBooking);
+  
+  // ✅ log หลัง normalize
+  console.log("✅ Mapped bookings:", mapped);
+  
+  return mapped;
 }
 
 /**
