@@ -1,17 +1,15 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { fetchDentist } from "../../data/dentists";
 import { RootState } from "..";
+import {
+  getBookings,
+  createBooking as apiCreateBooking,
+  updateBooking as apiUpdateBooking,
+  deleteBooking as apiDeleteBooking,
+  type BookingPayload,
+} from "../../lib/bookingApi";
 
-export interface Booking {
-  id: string;
-  userId: string;
-  userName: string;
-  userEmail: string;
-  dentistId: string;
-  dentistName: string;
-  date: string;
-  createdAt: string;
-}
+// Re-export the canonical type from the lib so consumers can import from one place
+export type Booking = BookingPayload;
 
 interface BookingState {
   items: Booking[];
@@ -23,58 +21,15 @@ const initialState: BookingState = {
   status: "idle",
 };
 
-const STORAGE_KEY = "bookings";
-
-const saveToStorage = (bookings: Booking[]) =>
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
-
-const normalizeUserId = (user: any) => {
-  if (!user) return "";
-  if (typeof user === "string") return user;
-  if (typeof user === "object") return String(user._id ?? user.id ?? "");
-  return "";
-};
-
-const normalizeDentistId = (dentist: any) => {
-  if (!dentist) return "";
-  if (typeof dentist === "string") return dentist;
-  if (typeof dentist === "object")
-    return String(dentist._id ?? dentist.id ?? "");
-  return "";
-};
-
-const toISODate = (dateValue: any) => {
-  if (!dateValue) return "";
-  const normalized =
-    typeof dateValue === "string" ? dateValue.trim() : String(dateValue);
-  const d = new Date(normalized);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toISOString();
-};
-
-const normalizeBookingPayload = (b: any) => ({
-  id: String(b._id ?? b.id ?? ""),
-  userId: normalizeUserId(b.user),
-  userName: b.user?.name ?? b.userName ?? "",
-  userEmail: b.user?.email ?? b.userEmail ?? "",
-  dentistId: normalizeDentistId(b.dentist),
-  dentistName: b.dentist?.name ?? b.dentistName ?? "",
-  date: toISODate(b.bookingDate ?? b.date ?? ""),
-  createdAt: b.createdAt ?? "",
-  ...b,
-});
+// Normalisation helpers have been moved to src/lib/bookingApi.ts
 
 // ── Thunks ────────────────────────────────────────────────────────────────────
 
+// ── Thunks (delegate to src/lib/bookingApi.ts) ────────────────────────────────
+
 export const loadBookings = createAsyncThunk(
   "bookings/load",
-  async (token: string) => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json();
-    return (data.data || []).map((b: any) => normalizeBookingPayload(b));
-  },
+  async (token: string) => getBookings(token),
 );
 
 export const createBooking = createAsyncThunk(
@@ -84,23 +39,12 @@ export const createBooking = createAsyncThunk(
     { rejectWithValue },
   ) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${payload.token}`,
-        },
-        body: JSON.stringify({
-          bookingDate: payload.date,
-          dentist: payload.dentistId,
-        }),
+      return await apiCreateBooking(payload.token, {
+        dentistId: payload.dentistId,
+        date: payload.date,
       });
-
-      const data = await res.json();
-      if (!res.ok) return rejectWithValue(data.message);
-      return normalizeBookingPayload(data.data);
-    } catch (err) {
-      return rejectWithValue("Network error");
+    } catch (err: any) {
+      return rejectWithValue(err.message ?? "Network error");
     }
   },
 );
@@ -108,34 +52,16 @@ export const createBooking = createAsyncThunk(
 export const updateBooking = createAsyncThunk(
   "bookings/update",
   async (
-    payload: {
-      bookingId: string;
-      dentistId: string;
-      date: string;
-      token: string;
-    },
+    payload: { bookingId: string; dentistId: string; date: string; token: string },
     { rejectWithValue },
   ) => {
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/bookings/${payload.bookingId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${payload.token}`,
-          },
-          body: JSON.stringify({
-            bookingDate: payload.date,
-            dentist: payload.dentistId,
-          }),
-        },
-      );
-      const data = await res.json();
-      if (!res.ok) return rejectWithValue(data.message);
-      return normalizeBookingPayload(data.data);
-    } catch (err) {
-      return rejectWithValue("Network error");
+      return await apiUpdateBooking(payload.token, payload.bookingId, {
+        dentistId: payload.dentistId,
+        date: payload.date,
+      });
+    } catch (err: any) {
+      return rejectWithValue(err.message ?? "Network error");
     }
   },
 );
@@ -147,20 +73,9 @@ export const deleteBooking = createAsyncThunk(
     { rejectWithValue },
   ) => {
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/bookings/${payload.bookingId}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${payload.token}` },
-        },
-      );
-      if (!res.ok) {
-        const data = await res.json();
-        return rejectWithValue(data.message);
-      }
-      return payload.bookingId;
-    } catch (err) {
-      return rejectWithValue("Network error");
+      return await apiDeleteBooking(payload.token, payload.bookingId);
+    } catch (err: any) {
+      return rejectWithValue(err.message ?? "Network error");
     }
   },
 );
