@@ -19,6 +19,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Tooltip from "@mui/material/Tooltip";
+import Skeleton from "@mui/material/Skeleton";
 import {
   Edit,
   Trash2,
@@ -27,6 +28,9 @@ import {
   Search,
   ChevronUp,
   ChevronDown,
+  Stethoscope,
+  Clock,
+  Award,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useAppDispatch, useAppSelector } from "@/store";
@@ -35,21 +39,26 @@ import {
   loadBookings,
   selectAllBookings,
 } from "@/store/slices/bookingSlice";
+import { getDentists, type Dentist } from "@/lib/bookingApi";
 import { toast } from "sonner";
 
 type SortKey = "patientName" | "date";
 type SortDir = "asc" | "desc";
+
+// ─── Small UI helpers ─────────────────────────────────────────────────────────
 
 function StatCard({
   label,
   value,
   icon: Icon,
   color,
+  loading,
 }: {
   label: string;
-  value: number;
+  value: number | string;
   icon: any;
   color: string;
+  loading?: boolean;
 }) {
   return (
     <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
@@ -61,11 +70,76 @@ function StatCard({
         className="text-white"
         style={{ fontSize: "1.75rem", fontWeight: 700 }}
       >
-        {value}
+        {loading ? (
+          <Skeleton variant="text" width={60} sx={{ bgcolor: "rgba(255,255,255,0.1)" }} />
+        ) : (
+          value
+        )}
       </div>
     </div>
   );
 }
+
+function DentistProfileBanner({
+  dentist,
+  loading,
+}: {
+  dentist: Dentist | null;
+  loading: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-4 mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
+      <Avatar
+        sx={{
+          width: 56,
+          height: 56,
+          bgcolor: "#3b82f6",
+          fontSize: "1.4rem",
+          fontWeight: 700,
+        }}
+      >
+        {loading ? "…" : (dentist?.name?.charAt(0).toUpperCase() ?? "D")}
+      </Avatar>
+      <div className="flex-1">
+        {loading ? (
+          <>
+            <Skeleton variant="text" width={180} height={28} sx={{ bgcolor: "rgba(255,255,255,0.1)" }} />
+            <Skeleton variant="text" width={260} height={20} sx={{ bgcolor: "rgba(255,255,255,0.08)" }} />
+          </>
+        ) : dentist ? (
+          <>
+            <h1
+              className="text-white mb-0.5"
+              style={{ fontSize: "1.2rem", fontWeight: 700 }}
+            >
+              Dr. {dentist.name}
+            </h1>
+            <div className="flex flex-wrap gap-3 text-sm">
+              <span className="flex items-center gap-1 text-blue-300">
+                <Stethoscope className="w-3.5 h-3.5" />
+                {dentist.areaOfExpertise || "General Dentistry"}
+              </span>
+              <span className="flex items-center gap-1 text-emerald-300">
+                <Clock className="w-3.5 h-3.5" />
+                {dentist.yearsOfExperience} yr
+                {dentist.yearsOfExperience !== 1 ? "s" : ""} experience
+              </span>
+            </div>
+          </>
+        ) : (
+          <h1
+            className="text-white"
+            style={{ fontSize: "1.2rem", fontWeight: 700 }}
+          >
+            My Appointments
+          </h1>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DentistAppointmentsPage() {
   const { data: session } = useSession();
@@ -74,8 +148,6 @@ export default function DentistAppointmentsPage() {
   const dispatch = useAppDispatch();
 
   const allBookings = useAppSelector(selectAllBookings);
-
-  // Filter bookings for current dentist only
   const dentistBookings = allBookings.filter(
     (b) => b.dentistId === session?.user?.id,
   );
@@ -83,23 +155,42 @@ export default function DentistAppointmentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [deletingBookingId, setDeletingBookingId] = useState<string | null>(null);
 
-  // Delete dialog state
-  const [deletingBookingId, setDeletingBookingId] = useState<string | null>(
-    null,
-  );
+  // Dentist profile state
+  const [dentistInfo, setDentistInfo] = useState<Dentist | null>(null);
+  const [dentistLoading, setDentistLoading] = useState(true);
 
+  // ── Auth guard ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isDentist) {
       router.push("/login");
     }
   }, [isDentist, router]);
 
+  // ── Load bookings ───────────────────────────────────────────────────────────
   useEffect(() => {
     if (!session?.accessToken) return;
     dispatch(loadBookings(session.accessToken));
   }, [session?.accessToken, dispatch]);
 
+  // ── Fetch dentist profile from backend ─────────────────────────────────────
+  useEffect(() => {
+    if (!session?.accessToken || !session?.user?.id) return;
+
+    setDentistLoading(true);
+    getDentists(session.accessToken)
+      .then((dentists) => {
+        const me = dentists.find((d) => d._id === session.user?.id);
+        setDentistInfo(me ?? null);
+      })
+      .catch((err) => {
+        console.error("[dentist-appointments] failed to load dentist info:", err);
+      })
+      .finally(() => setDentistLoading(false));
+  }, [session?.accessToken, session?.user?.id]);
+
+  // ── Helpers ─────────────────────────────────────────────────────────────────
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString("en-US", {
       year: "numeric",
@@ -164,28 +255,23 @@ export default function DentistAppointmentsPage() {
       );
       toast.success("Appointment deleted");
       setDeletingBookingId(null);
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete appointment");
     }
   };
 
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Stats Banner */}
+      {/* Stats / Profile Banner */}
       <div className="bg-gradient-to-r from-slate-800 to-slate-900 border-b border-slate-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-6">
-            <h1
-              className="text-white mb-1"
-              style={{ fontSize: "1.5rem", fontWeight: 700 }}
-            >
-              My Appointments
-            </h1>
-            <p className="text-slate-400 text-sm">
-              Manage and edit your appointment schedule
-            </p>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+
+          {/* Dentist profile */}
+          <DentistProfileBanner dentist={dentistInfo} loading={dentistLoading} />
+
+          {/* Stat cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <StatCard
               label="Total Appointments"
               value={dentistBookings.length}
@@ -204,11 +290,37 @@ export default function DentistAppointmentsPage() {
               icon={Users}
               color="text-purple-400"
             />
+            <StatCard
+              label="Experience"
+              value={
+                dentistLoading
+                  ? "—"
+                  : dentistInfo
+                  ? `${dentistInfo.yearsOfExperience} yr${dentistInfo.yearsOfExperience !== 1 ? "s" : ""}`
+                  : "—"
+              }
+              icon={Award}
+              color="text-amber-400"
+              loading={dentistLoading}
+            />
           </div>
         </div>
       </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Specialty badge (shown when data loaded) */}
+        {!dentistLoading && dentistInfo?.areaOfExpertise && (
+          <div className="mb-4 flex items-center gap-2">
+            <Stethoscope className="w-4 h-4 text-blue-500" />
+            <span className="text-slate-600 text-sm">
+              Specialising in{" "}
+              <span className="font-semibold text-slate-800">
+                {dentistInfo.areaOfExpertise}
+              </span>
+            </span>
+          </div>
+        )}
+
         <Paper
           sx={{
             borderRadius: "16px",
@@ -227,7 +339,7 @@ export default function DentistAppointmentsPage() {
               </p>
             </div>
             <TextField
-              placeholder="Search patients..."
+              placeholder="Search patients…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               size="small"
@@ -272,6 +384,12 @@ export default function DentistAppointmentsPage() {
                     >
                       Email
                     </TableCell>
+                    {/* Dentist column populated from backend */}
+                    <TableCell
+                      sx={{ display: { xs: "none", md: "table-cell" } }}
+                    >
+                      Dentist
+                    </TableCell>
                     <TableCell>
                       <button
                         onClick={() => handleSort("date")}
@@ -289,6 +407,7 @@ export default function DentistAppointmentsPage() {
                     const isUpcoming = new Date(booking.date) >= new Date();
                     return (
                       <TableRow key={booking.id} hover>
+                        {/* Patient */}
                         <TableCell>
                           <div className="flex items-center gap-2.5">
                             <Avatar
@@ -311,6 +430,8 @@ export default function DentistAppointmentsPage() {
                             </span>
                           </div>
                         </TableCell>
+
+                        {/* Email */}
                         <TableCell
                           sx={{ display: { xs: "none", sm: "table-cell" } }}
                         >
@@ -318,11 +439,38 @@ export default function DentistAppointmentsPage() {
                             {booking.userEmail}
                           </span>
                         </TableCell>
+
+                        {/* Dentist – real data from database */}
+                        <TableCell
+                          sx={{ display: { xs: "none", md: "table-cell" } }}
+                        >
+                          <div className="flex flex-col gap-0.5">
+                            <span
+                              className="text-slate-700 text-sm"
+                              style={{ fontWeight: 500 }}
+                            >
+                              {dentistLoading ? (
+                                <Skeleton variant="text" width={100} />
+                              ) : (
+                                `Dr. ${booking.dentistName || dentistInfo?.name || "—"}`
+                              )}
+                            </span>
+                            {!dentistLoading && dentistInfo?.areaOfExpertise && (
+                              <span className="text-xs text-blue-500">
+                                {dentistInfo.areaOfExpertise}
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        {/* Date */}
                         <TableCell>
                           <span className="text-slate-700 text-sm">
                             {formatDate(booking.date)}
                           </span>
                         </TableCell>
+
+                        {/* Status */}
                         <TableCell>
                           <Chip
                             label={isUpcoming ? "Upcoming" : "Past"}
@@ -338,6 +486,8 @@ export default function DentistAppointmentsPage() {
                             }}
                           />
                         </TableCell>
+
+                        {/* Actions */}
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <Tooltip title="Edit appointment">
@@ -363,7 +513,9 @@ export default function DentistAppointmentsPage() {
                             <Tooltip title="Delete appointment">
                               <IconButton
                                 size="small"
-                                onClick={() => setDeletingBookingId(booking.id)}
+                                onClick={() =>
+                                  setDeletingBookingId(booking.id)
+                                }
                                 sx={{
                                   color: "#94a3b8",
                                   "&:hover": {
