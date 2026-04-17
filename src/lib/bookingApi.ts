@@ -105,7 +105,7 @@ export function normalizeBooking(b: any): BookingPayload {
  * Fetch all bookings for the authenticated user / dentist.
  */
 export async function getBookings(token: string): Promise<BookingPayload[]> {
-  const res = await fetch(`${BASE_URL}/bookings`, {
+  const res = await fetch(`${BASE_URL}/bookings/availability`, {
     headers: authHeaders(token),
   });
   
