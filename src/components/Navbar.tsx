@@ -23,6 +23,7 @@ import {
   Menu,
   X,
   Shield,
+  UserPlus,
 } from "lucide-react";
 import { useSession, signOut as nextAuthSignOut } from "next-auth/react";
 
@@ -144,19 +145,34 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
                   </MuiButton>
                 )}
                 {userRole === "admin" && (
-                  <MuiButton
-                    startIcon={<LayoutDashboard size={16} />}
-                    onClick={() => router.push("/admin")}
-                    color="inherit"
-                    sx={{
-                      color: "#475569",
-                      "&:hover": { color: "#2563eb", bgcolor: "#eff6ff" },
-                      borderRadius: 2,
-                      px: 1.5,
-                    }}
-                  >
-                    Admin
-                  </MuiButton>
+                  <>
+                    <MuiButton
+                      startIcon={<LayoutDashboard size={16} />}
+                      onClick={() => router.push("/admin")}
+                      color="inherit"
+                      sx={{
+                        color: "#475569",
+                        "&:hover": { color: "#2563eb", bgcolor: "#eff6ff" },
+                        borderRadius: 2,
+                        px: 1.5,
+                      }}
+                    >
+                      Admin
+                    </MuiButton>
+                    <MuiButton
+                      startIcon={<UserPlus size={16} />}
+                      onClick={() => router.push("/admin/create-account")}
+                      color="inherit"
+                      sx={{
+                        color: "#475569",
+                        "&:hover": { color: "#2563eb", bgcolor: "#eff6ff" },
+                        borderRadius: 2,
+                        px: 1.5,
+                      }}
+                    >
+                      Create Account
+                    </MuiButton>
+                  </>
                 )}
                 {userRole === "dentist" && (
                   <MuiButton
@@ -347,6 +363,28 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
                 </ListItemIcon>
                 <ListItemText
                   primary="My Appointments"
+                  primaryTypographyProps={{
+                    fontSize: "0.875rem",
+                    color: "#374151",
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          )}
+          {variant === "user" && userRole === "admin" && (
+            <ListItem disablePadding>
+              <ListItemButton
+                onClick={() => {
+                  router.push("/admin/create-account");
+                  setDrawerOpen(false);
+                }}
+                sx={{ borderRadius: 2, mb: 0.5 }}
+              >
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <UserPlus size={18} color="#64748b" />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Create Account"
                   primaryTypographyProps={{
                     fontSize: "0.875rem",
                     color: "#374151",

@@ -2,11 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
-import format from "date-fns/format";
-import parse from "date-fns/parse";
-import startOfWeek from "date-fns/startOfWeek";
-import getDay from "date-fns/getDay";
-import enUS from "date-fns/locale/en-US";
+import { format, parse, startOfWeek, getDay } from "date-fns";
+import { enUS } from "date-fns/locale";
 import { useSession } from "next-auth/react";
 
 // TODO: แก้ไข Path ให้ตรงกับไฟล์ที่คุณประกาศ getBookings และ BookingPayload เอาไว้
