@@ -33,6 +33,7 @@ import {
   ChevronDown,
   Star,
   MessageSquare,
+  UserPlus,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useAppDispatch, useAppSelector } from "@/store";
@@ -228,15 +229,32 @@ export default function AdminPage() {
       <div className="bg-gradient-to-r from-slate-800 to-slate-900 border-b border-slate-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-6">
-            <h1
-              className="text-white mb-1"
-              style={{ fontSize: "1.5rem", fontWeight: 700 }}
-            >
-              Admin Dashboard
-            </h1>
-            <p className="text-slate-400 text-sm">
-              Manage appointments and patient reviews
-            </p>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h1
+                  className="text-white mb-1"
+                  style={{ fontSize: "1.5rem", fontWeight: 700 }}
+                >
+                  Admin Dashboard
+                </h1>
+                <p className="text-slate-400 text-sm">
+                  Manage appointments and patient reviews
+                </p>
+              </div>
+              <MuiButton
+                variant="contained"
+                startIcon={<UserPlus size={16} />}
+                onClick={() => router.push("/admin/create-account")}
+                sx={{
+                  borderRadius: "10px",
+                  bgcolor: "#2563eb",
+                  flexShrink: 0,
+                  "&:hover": { bgcolor: "#1d4ed8" },
+                }}
+              >
+                Create Account
+              </MuiButton>
+            </div>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <StatCard
