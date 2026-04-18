@@ -2,8 +2,15 @@ import { configureStore } from '@reduxjs/toolkit';
 import bookingReducer, { loadBookings, createBooking, updateBooking, selectAllBookings } from '@/store/slices/bookingSlice';
 
 describe('bookingSlice', () => {
+  let consoleLogSpy: jest.SpyInstance;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleLogSpy.mockRestore();
   });
 
   it('normalizes booking payload from API and stores user/dentist ids correctly', async () => {

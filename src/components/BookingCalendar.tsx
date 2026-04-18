@@ -6,10 +6,7 @@ import { format, parse, startOfWeek, getDay } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { useSession } from "next-auth/react";
 
-// TODO: แก้ไข Path ให้ตรงกับไฟล์ที่คุณประกาศ getBookings และ BookingPayload เอาไว้
 import { getBookings,type BookingPayload } from "@/lib/bookingApi"; 
-
-import "react-big-calendar/lib/css/react-big-calendar.css";
 
 // ตั้งค่า Localizer สำหรับปฏิทิน
 const locales = {

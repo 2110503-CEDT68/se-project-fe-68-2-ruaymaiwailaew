@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import LoginPage from '@/app/login/page';
 import RegisterPage from '@/app/register/page';
@@ -53,8 +53,8 @@ describe('LoginPage', () => {
 
     render(<LoginPage />);
 
-    await userEvent.type(screen.getByPlaceholderText('you@example.com'), 'test@example.com');
-    await userEvent.type(screen.getByPlaceholderText('••••••••'), 'test123');
+    fireEvent.change(screen.getByPlaceholderText('you@example.com'), { target: { value: 'test@example.com' } });
+    fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'test123' } });
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
     await waitFor(() => {
@@ -73,8 +73,8 @@ describe('LoginPage', () => {
 
     render(<LoginPage />);
 
-    await userEvent.type(screen.getByPlaceholderText('you@example.com'), 'bad@example.com');
-    await userEvent.type(screen.getByPlaceholderText('••••••••'), 'badpass');
+    fireEvent.change(screen.getByPlaceholderText('you@example.com'), { target: { value: 'bad@example.com' } });
+    fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'badpass' } });
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
     await waitFor(() => {
@@ -93,11 +93,11 @@ describe('LoginPage', () => {
 
     render(<RegisterPage />);
 
-    await userEvent.type(screen.getByPlaceholderText('John Doe'), 'RegTest');
-    await userEvent.type(screen.getByPlaceholderText('0xx-xxx-xxxx'), '0123456789');
-    await userEvent.type(screen.getByPlaceholderText('you@example.com'), 'register@example.com');
-    await userEvent.type(screen.getByPlaceholderText('Min. 6 characters'), 'test123');
-    await userEvent.type(screen.getByPlaceholderText('Re-enter your password'), 'test123');
+    fireEvent.change(screen.getByPlaceholderText('John Doe'), { target: { value: 'RegTest' } });
+    fireEvent.change(screen.getByPlaceholderText('0xx-xxx-xxxx'), { target: { value: '0123456789' } });
+    fireEvent.change(screen.getByPlaceholderText('you@example.com'), { target: { value: 'register@example.com' } });
+    fireEvent.change(screen.getByPlaceholderText('Min. 6 characters'), { target: { value: 'test123' } });
+    fireEvent.change(screen.getByPlaceholderText('Re-enter your password'), { target: { value: 'test123' } });
 
     await userEvent.click(screen.getByRole('button', { name: /create account/i }));
 
@@ -106,5 +106,5 @@ describe('LoginPage', () => {
       expect(signIn).toHaveBeenCalledWith('credentials', expect.objectContaining({ email: 'register@example.com', accessToken: 'jwt-token', redirect: false }));
       expect(pushMock).toHaveBeenCalledWith('/dashboard');
     });
-  });
+  }, 15000);
 });

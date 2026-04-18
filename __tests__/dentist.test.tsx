@@ -2,15 +2,18 @@ import { fetchDentists, fetchDentist } from '@/data/dentists';
 
 // Mock fetch globally
 const mockFetch = jest.fn();
+let consoleErrorSpy: jest.SpyInstance;
 
 describe('fetchDentists', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     global.fetch = mockFetch;
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
     global.fetch = fetch; // Restore original fetch
+    consoleErrorSpy.mockRestore();
   });
 
   it('returns dentists array on successful fetch', async () => {
@@ -116,10 +119,12 @@ describe('fetchDentist', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     global.fetch = mockFetch;
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
     global.fetch = fetch; // Restore original fetch
+    consoleErrorSpy.mockRestore();
   });
 
   it('returns dentist on successful fetch', async () => {
