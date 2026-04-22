@@ -1,21 +1,14 @@
 /**
  * bookingApi.ts
  *
- * Centralised API client for the /bookings and /dentist endpoints.
- * All calls read base URLs from environment variables defined in .env:
- *   NEXT_PUBLIC_API_URL          – base for bookings
- *   NEXT_PUBLIC_API_DENTISTS_URL – dentist list endpoint
+ * Centralized API client for booking and dentist endpoints.
+ *
+ * Important:
+ * - Client code calls internal Next.js API routes (`/api/...`).
+ * - Server routes then read backend base URL from runtime env.
+ *
+ * This keeps Docker runtime configuration working without rebuilding images.
  */
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-const DENTISTS_URL = `${BASE_URL}/dentist`;
-
-if (!BASE_URL) {
-  console.warn(
-    "[bookingApi] NEXT_PUBLIC_API_URL is not set. " +
-      "Make sure it is defined in your .env file."
-  );
-}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -104,23 +97,14 @@ export function normalizeBooking(b: any): BookingPayload {
  * Fetch all bookings for the authenticated user / dentist.
  */
 export async function getBookings(token: string): Promise<BookingPayload[]> {
-  const res = await fetch(`${BASE_URL}/bookings/availability`, {
+  const res = await fetch("/api/bookings/availability", {
     headers: authHeaders(token),
   });
-  
-  // ✅ log raw response status
-  console.log("📡 Status:", res.status, res.statusText);
-  
+
   const data = await handleResponse<{ data: any[] }>(res);
-  
-  // ✅ log ข้อมูลดิบจาก API
-  console.log("📦 Raw data:", JSON.stringify(data, null, 2));
-  
+
   const mapped = (data.data ?? []).map(normalizeBooking);
-  
-  // ✅ log หลัง normalize
-  console.log("✅ Mapped bookings:", mapped);
-  
+
   return mapped;
 }
 
@@ -132,7 +116,7 @@ export async function createBooking(
   token: string,
   payload: { dentistId: string; date: string }
 ): Promise<BookingPayload> {
-  const res = await fetch(`${BASE_URL}/bookings`, {
+  const res = await fetch("/api/bookings", {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify({
@@ -153,7 +137,7 @@ export async function updateBooking(
   bookingId: string,
   payload: { dentistId: string; date: string }
 ): Promise<BookingPayload> {
-  const res = await fetch(`${BASE_URL}/bookings/${bookingId}`, {
+  const res = await fetch(`/api/bookings/${bookingId}`, {
     method: "PUT",
     headers: authHeaders(token),
     body: JSON.stringify({
@@ -173,7 +157,7 @@ export async function deleteBooking(
   token: string,
   bookingId: string
 ): Promise<string> {
-  const res = await fetch(`${BASE_URL}/bookings/${bookingId}`, {
+  const res = await fetch(`/api/bookings/${bookingId}`, {
     method: "DELETE",
     headers: authHeaders(token),
   });
@@ -182,14 +166,11 @@ export async function deleteBooking(
 }
 
 /**
- * GET /dentist  (NEXT_PUBLIC_API_DENTISTS_URL)
- * Fetch all dentists from the backend.
- * Uses the dentist-specific URL from .env so it can differ from the booking base.
+ * GET /api/dentist
+ * Fetch all dentists via internal API route proxy.
  */
 export async function getDentists(token: string): Promise<Dentist[]> {
-  const res = await fetch(DENTISTS_URL as string, {
-    headers: authHeaders(token),
-  });
+  const res = await fetch("/api/dentist");
   const data = await handleResponse<any>(res);
   // Backend may return { success, data: [...] } or a plain array
   const list: any[] = Array.isArray(data)
