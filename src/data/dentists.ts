@@ -6,6 +6,32 @@ export interface Dentist {
   __v?: number;
 }
 
+function normalizeDentist(raw: any): Dentist {
+  const name =
+    typeof raw?.name === "string" && raw.name.trim().length > 0
+      ? raw.name.trim()
+      : "Unknown Dentist";
+  const years =
+    typeof raw?.yearsOfExperience === "number" && raw.yearsOfExperience >= 0
+      ? raw.yearsOfExperience
+      : Number(raw?.yearsOfExperience) >= 0
+      ? Number(raw.yearsOfExperience)
+      : 0;
+  const expertise =
+    typeof raw?.areaOfExpertise === "string" &&
+    raw.areaOfExpertise.trim().length > 0
+      ? raw.areaOfExpertise.trim()
+      : "General Dentistry";
+
+  return {
+    _id: String(raw?._id ?? ""),
+    name,
+    yearsOfExperience: years,
+    areaOfExpertise: expertise,
+    __v: typeof raw?.__v === "number" ? raw.__v : undefined,
+  };
+}
+
 // Function to fetch dentists from API
 export async function fetchDentists(): Promise<Dentist[]> {
   try {
@@ -29,7 +55,9 @@ export async function fetchDentists(): Promise<Dentist[]> {
       return [];
     }
 
-    return normalized;
+    return normalized
+      .map((item) => normalizeDentist(item))
+      .filter((d) => d._id.length > 0);
   } catch (error) {
     console.error('Error fetching dentists:', error);
     return [];
@@ -44,7 +72,7 @@ export async function fetchDentist(id: string): Promise<Dentist | null> {
       throw new Error('Failed to fetch dentist');
     }
     const data = await response.json();
-    return data;
+    return data ? normalizeDentist(data) : null;
   } catch (error) {
     console.error('Error fetching dentist:', error);
     return null;
