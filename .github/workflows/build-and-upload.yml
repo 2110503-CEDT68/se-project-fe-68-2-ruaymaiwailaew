@@ -2,7 +2,7 @@ name: build and upload
 
 on:
     push:
-        branches: [main]
+        branches: [main, feature/docker-support]
 
 env:
   IMAGE_NAME: g26-se-project-fe-68-2
