@@ -8,8 +8,7 @@
  */
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-const DENTISTS_URL =
-  process.env.NEXT_PUBLIC_API_DENTISTS_URL ?? `${BASE_URL}/dentist`;
+const DENTISTS_URL = `${BASE_URL}/dentist`;
 
 if (!BASE_URL) {
   console.warn(
