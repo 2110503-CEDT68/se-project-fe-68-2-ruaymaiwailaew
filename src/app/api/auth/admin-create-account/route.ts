@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_AUTH_URL ||
-  "https://dental-management-api-seven.vercel.app/api/auth";
+const API_AUTH_URL = process.env.NEXT_PUBLIC_API_URL + "/auth";
 
 const ALLOWED_ROLES = ["user", "admin", "dentist"] as const;
 type AllowedRole = (typeof ALLOWED_ROLES)[number];
@@ -37,7 +35,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const response = await fetch(`${API_BASE_URL}/register`, {
+    const response = await fetch(`${API_AUTH_URL}/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

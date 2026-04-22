@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../[...nextauth]/authOptions";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_AUTH_URL || "https://dental-management-api-seven.vercel.app/api/auth";
+const API_AUTH_URL = process.env.NEXT_PUBLIC_API_URL + "/auth";
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Call backend logout API
-    const response = await fetch(`${API_BASE_URL}/logout`, {
+    const response = await fetch(`${API_AUTH_URL}/logout`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${token}`,
