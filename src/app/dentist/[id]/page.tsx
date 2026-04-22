@@ -532,7 +532,7 @@ export default function DentistDetailPage({
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder="Share your experience..."
-                    InputLabelProps={{ shrink: true }}
+                    slotProps={{ inputLabel: { shrink: true } }}
                   />
                   <div className="my-10" />
                   <MuiButton
