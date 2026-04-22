@@ -268,12 +268,14 @@ export default function CreateBookingPage() {
                       type="date"
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
-                      inputProps={{
-                        min: new Date().toISOString().split("T")[0],
+                      slotProps={{
+                        htmlInput: {
+                          min: new Date().toISOString().split("T")[0],
+                        },
+                        inputLabel: { shrink: true },
                       }}
                       required
                       fullWidth
-                      InputLabelProps={{ shrink: true }}
                       sx={{
                         "& .MuiOutlinedInput-root": { borderRadius: "10px" },
                       }}

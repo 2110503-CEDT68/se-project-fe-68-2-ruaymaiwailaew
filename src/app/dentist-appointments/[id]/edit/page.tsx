@@ -244,8 +244,10 @@ export default function DentistEditBookingPage() {
                   onChange={(e) => setFormData({ date: e.target.value })}
                   fullWidth
                   variant="outlined"
-                  inputProps={{
-                    min: new Date().toISOString().slice(0, 16),
+                  slotProps={{
+                    htmlInput: {
+                      min: new Date().toISOString().slice(0, 16),
+                    },
                   }}
                   sx={{
                     "& .MuiOutlinedInput-root": {

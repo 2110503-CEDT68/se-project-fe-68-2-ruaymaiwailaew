@@ -235,9 +235,11 @@ export default function MyBooking() {
                 type="date"
                 value={editDate}
                 onChange={(e) => setEditDate(e.target.value)}
-                inputProps={{ min: new Date().toISOString().split("T")[0] }}
+                slotProps={{
+                  htmlInput: { min: new Date().toISOString().split("T")[0] },
+                  inputLabel: { shrink: true },
+                }}
                 required
-                InputLabelProps={{ shrink: true }}
               />
 
               <div className="my-10" />

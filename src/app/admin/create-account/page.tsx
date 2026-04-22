@@ -237,7 +237,7 @@ export default function AdminCreateAccountPage() {
                 placeholder="John Doe"
                 required
                 fullWidth
-                InputLabelProps={{ shrink: true }}
+                slotProps={{ inputLabel: { shrink: true } }}
               />
 
               <TextField
@@ -245,10 +245,10 @@ export default function AdminCreateAccountPage() {
                 type="tel"
                 value={telephone}
                 onChange={(e) => setTelephone(e.target.value)}
-                placeholder="0xx-xxx-xxxx"
+                placeholder="0xxxxxxxxx"
                 required
                 fullWidth
-                InputLabelProps={{ shrink: true }}
+                slotProps={{ inputLabel: { shrink: true } }}
               />
             </div>
 
@@ -260,7 +260,7 @@ export default function AdminCreateAccountPage() {
               placeholder="you@example.com"
               required
               fullWidth
-              InputLabelProps={{ shrink: true }}
+              slotProps={{ inputLabel: { shrink: true } }}
             />
 
             <div className="pt-1 border-t border-slate-100">
@@ -308,24 +308,26 @@ export default function AdminCreateAccountPage() {
                     placeholder="Min. 6 characters"
                     required
                     fullWidth
-                    InputLabelProps={{ shrink: true }}
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            size="small"
-                            onClick={() => setShowPassword(!showPassword)}
-                            edge="end"
-                            sx={{ color: "#94a3b8" }}
-                          >
-                            {showPassword ? (
-                              <EyeOff size={16} />
-                            ) : (
-                              <Eye size={16} />
-                            )}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
+                    slotProps={{
+                      inputLabel: { shrink: true },
+                      input: {
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              size="small"
+                              onClick={() => setShowPassword(!showPassword)}
+                              edge="end"
+                              sx={{ color: "#94a3b8" }}
+                            >
+                              {showPassword ? (
+                                <EyeOff size={16} />
+                              ) : (
+                                <Eye size={16} />
+                              )}
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      },
                     }}
                   />
                   {password.length > 0 && (
@@ -356,30 +358,32 @@ export default function AdminCreateAccountPage() {
                   fullWidth
                   error={passwordsMismatch}
                   helperText={passwordsMismatch ? "Passwords do not match" : ""}
-                  InputLabelProps={{ shrink: true }}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        {passwordsMatch ? (
-                          <Check size={16} color="#16a34a" />
-                        ) : (
-                          <IconButton
-                            size="small"
-                            onClick={() =>
-                              setShowConfirmPassword(!showConfirmPassword)
-                            }
-                            edge="end"
-                            sx={{ color: "#94a3b8" }}
-                          >
-                            {showConfirmPassword ? (
-                              <EyeOff size={16} />
-                            ) : (
-                              <Eye size={16} />
-                            )}
-                          </IconButton>
-                        )}
-                      </InputAdornment>
-                    ),
+                  slotProps={{
+                    inputLabel: { shrink: true },
+                    input: {
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          {passwordsMatch ? (
+                            <Check size={16} color="#16a34a" />
+                          ) : (
+                            <IconButton
+                              size="small"
+                              onClick={() =>
+                                setShowConfirmPassword(!showConfirmPassword)
+                              }
+                              edge="end"
+                              sx={{ color: "#94a3b8" }}
+                            >
+                              {showConfirmPassword ? (
+                                <EyeOff size={16} />
+                              ) : (
+                                <Eye size={16} />
+                              )}
+                            </IconButton>
+                          )}
+                        </InputAdornment>
+                      ),
+                    },
                   }}
                 />
               </div>

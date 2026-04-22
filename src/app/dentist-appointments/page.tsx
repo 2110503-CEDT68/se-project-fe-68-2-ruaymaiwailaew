@@ -344,12 +344,14 @@ export default function DentistAppointmentsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               size="small"
               sx={{ width: { xs: "100%", sm: 260 } }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search size={15} color="#94a3b8" />
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search size={15} color="#94a3b8" />
+                    </InputAdornment>
+                  ),
+                },
               }}
             />
           </div>

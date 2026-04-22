@@ -106,18 +106,28 @@ export default function DashboardPage() {
   const expertiseFilters = [
     "All",
     ...Array.from(
-      new Set(safeDentists.map((d) => d.areaOfExpertise.split(" & ")[0])),
+      new Set(
+        safeDentists.map((d) => {
+          const expertise =
+            typeof d.areaOfExpertise === "string" && d.areaOfExpertise.trim()
+              ? d.areaOfExpertise
+              : "General Dentistry";
+          return expertise.split(" & ")[0];
+        }),
+      ),
     ),
   ];
 
   const filteredDentists = safeDentists.filter((d) => {
     const q = searchQuery.toLowerCase();
+    const name = typeof d.name === "string" ? d.name : "";
+    const expertise =
+      typeof d.areaOfExpertise === "string" ? d.areaOfExpertise : "";
     const matchSearch =
-      d.name.toLowerCase().includes(q) ||
-      d.areaOfExpertise.toLowerCase().includes(q);
+      name.toLowerCase().includes(q) || expertise.toLowerCase().includes(q);
     const matchFilter =
       selectedExpertise === "All" ||
-      d.areaOfExpertise.includes(selectedExpertise);
+      expertise.includes(selectedExpertise);
     return matchSearch && matchFilter;
   });
 
@@ -187,12 +197,14 @@ export default function DashboardPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             size="small"
             sx={{ width: { xs: "100%", sm: 280 } }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search size={15} color="#94a3b8" />
-                </InputAdornment>
-              ),
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search size={15} color="#94a3b8" />
+                  </InputAdornment>
+                ),
+              },
             }}
           />
         </div>

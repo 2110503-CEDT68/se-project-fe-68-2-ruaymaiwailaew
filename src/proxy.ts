@@ -1,7 +1,7 @@
 import { withAuth } from "next-auth/middleware";
 import { NextRequest } from "next/server";
 
-export const middleware = withAuth(
+export const proxy = withAuth(
   function middleware(req: NextRequest) {
     return;
   },
