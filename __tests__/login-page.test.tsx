@@ -94,7 +94,7 @@ describe('LoginPage', () => {
     render(<RegisterPage />);
 
     fireEvent.change(screen.getByPlaceholderText('John Doe'), { target: { value: 'RegTest' } });
-    fireEvent.change(screen.getByPlaceholderText('0xx-xxx-xxxx'), { target: { value: '0123456789' } });
+    fireEvent.change(screen.getByPlaceholderText('0xxxxxxxxx'), { target: { value: '0123456789' } });
     fireEvent.change(screen.getByPlaceholderText('you@example.com'), { target: { value: 'register@example.com' } });
     fireEvent.change(screen.getByPlaceholderText('Min. 6 characters'), { target: { value: 'test123' } });
     fireEvent.change(screen.getByPlaceholderText('Re-enter your password'), { target: { value: 'test123' } });

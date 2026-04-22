@@ -221,7 +221,7 @@ export default function RegisterPage() {
                 type="tel"
                 value={telephone}
                 onChange={(e) => setTelephone(e.target.value)}
-                placeholder="0xx-xxx-xxxx"
+                placeholder="0xxxxxxxxx"
                 required
                 fullWidth
                 slotProps={{ inputLabel: { shrink: true } }}
