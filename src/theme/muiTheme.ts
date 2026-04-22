@@ -58,10 +58,10 @@ const muiTheme = createTheme({
           fontWeight: 600,
           boxShadow: 'none',
           '&:hover': { boxShadow: 'none' },
-        },
-        containedPrimary: {
-          background: '#2563eb',
-          '&:hover': { background: '#1d4ed8' },
+          '&.MuiButton-containedPrimary': {
+            background: '#2563eb',
+            '&:hover': { background: '#1d4ed8' },
+          },
         },
       },
       defaultProps: {

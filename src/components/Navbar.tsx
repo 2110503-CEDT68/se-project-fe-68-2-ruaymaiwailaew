@@ -269,7 +269,7 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
         anchor="right"
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        PaperProps={{ sx: { width: 260 } }}
+        slotProps={{ paper: { sx: { width: 260 } } }}
       >
         <div className="flex items-center justify-between p-4 border-b border-slate-100">
           <div className="flex items-center gap-2">
@@ -320,9 +320,13 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
                   </ListItemIcon>
                   <ListItemText
                     primary="Dashboard"
-                    primaryTypographyProps={{
-                      fontSize: "0.875rem",
-                      color: "#374151",
+                    slotProps={{
+                      primary: {
+                        sx: {
+                          fontSize: "0.875rem",
+                          color: "#374151",
+                        },
+                      },
                     }}
                   />
                 </ListItemButton>
@@ -340,9 +344,13 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
                   </ListItemIcon>
                   <ListItemText
                     primary="My Booking"
-                    primaryTypographyProps={{
-                      fontSize: "0.875rem",
-                      color: "#374151",
+                    slotProps={{
+                      primary: {
+                        sx: {
+                          fontSize: "0.875rem",
+                          color: "#374151",
+                        },
+                      },
                     }}
                   />
                 </ListItemButton>
@@ -363,9 +371,13 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
                 </ListItemIcon>
                 <ListItemText
                   primary="My Appointments"
-                  primaryTypographyProps={{
-                    fontSize: "0.875rem",
-                    color: "#374151",
+                  slotProps={{
+                    primary: {
+                      sx: {
+                        fontSize: "0.875rem",
+                        color: "#374151",
+                      },
+                    },
                   }}
                 />
               </ListItemButton>
@@ -385,9 +397,13 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
                 </ListItemIcon>
                 <ListItemText
                   primary="Create Account"
-                  primaryTypographyProps={{
-                    fontSize: "0.875rem",
-                    color: "#374151",
+                  slotProps={{
+                    primary: {
+                      sx: {
+                        fontSize: "0.875rem",
+                        color: "#374151",
+                      },
+                    },
                   }}
                 />
               </ListItemButton>
@@ -407,10 +423,14 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
                 </ListItemIcon>
                 <ListItemText
                   primary="Admin Panel"
-                  primaryTypographyProps={{
-                    fontSize: "0.875rem",
-                    color: "#1d4ed8",
-                    fontWeight: 600,
+                  slotProps={{
+                    primary: {
+                      sx: {
+                        fontSize: "0.875rem",
+                        color: "#1d4ed8",
+                        fontWeight: 600,
+                      },
+                    },
                   }}
                 />
               </ListItemButton>
@@ -435,10 +455,14 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
               </ListItemIcon>
               <ListItemText
                 primary="Logout"
-                primaryTypographyProps={{
-                  fontSize: "0.875rem",
-                  color: "#ef4444",
-                  fontWeight: 500,
+                slotProps={{
+                  primary: {
+                    sx: {
+                      fontSize: "0.875rem",
+                      color: "#ef4444",
+                      fontWeight: 500,
+                    },
+                  },
                 }}
               />
             </ListItemButton>
