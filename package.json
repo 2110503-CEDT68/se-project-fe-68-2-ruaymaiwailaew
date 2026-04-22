@@ -1,6 +1,6 @@
 {
-  "name": "venue-explorer",
-  "version": "0.1.0",
+  "name": "se-project-fe-68-2-ruaymaiwailaew",
+  "version": "0.2.1",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
