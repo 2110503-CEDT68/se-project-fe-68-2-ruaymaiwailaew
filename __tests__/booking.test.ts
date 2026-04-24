@@ -53,7 +53,7 @@ describe('bookingSlice', () => {
     await store.dispatch(createBooking({ dentistId: 'd1', date: '2026-03-26', token: 'dummy-token' }) as any);
 
     expect(global.fetch).toHaveBeenCalledWith(
-      `${process.env.NEXT_PUBLIC_API_URL}/bookings`,
+      '/api/bookings',
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({
@@ -90,7 +90,7 @@ describe('bookingSlice', () => {
     await store.dispatch(updateBooking({ bookingId: 'b3', dentistId: 'd2', date: '2026-03-26', token: 'dummy-token' }) as any);
 
     expect(global.fetch).toHaveBeenLastCalledWith(
-      `${process.env.NEXT_PUBLIC_API_URL}/bookings/b3`,
+      '/api/bookings/b3',
       expect.objectContaining({
         method: 'PUT',
         body: JSON.stringify({ bookingDate: '2026-03-26', dentist: 'd2' }),
