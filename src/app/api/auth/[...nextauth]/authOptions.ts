@@ -97,6 +97,5 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   secret:
-    process.env.NEXTAUTH_SECRET ||
-    "dentist-booking-secret-dev-key-change-in-production",
+    process.env.NEXTAUTH_SECRET
 };
