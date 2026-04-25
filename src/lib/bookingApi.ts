@@ -31,7 +31,7 @@ export interface BookingPayload {
   createdAt: string;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 function authHeaders(token: string): HeadersInit {
   return {
