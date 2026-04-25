@@ -32,7 +32,7 @@ export const loadReviews = createAsyncThunk(
   "reviews/load",
   async (payload: { dentistId: string; token: string }) => {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/dentist/${payload.dentistId}/reviews`,
+      `/api/dentist/${payload.dentistId}/reviews`,
       { headers: { Authorization: `Bearer ${payload.token}` } }
     );
     const data = await res.json();
@@ -56,7 +56,7 @@ export const addReview = createAsyncThunk(
   ) => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/dentist/${payload.dentistId}/reviews`,
+        `/api/dentist/${payload.dentistId}/reviews`,
         {
           method: "POST",
           headers: {
@@ -91,7 +91,7 @@ export const updateReview = createAsyncThunk(
   ) => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/reviews/${payload.reviewId}`,
+        `/api/reviews/${payload.reviewId}`,
         {
           method: "PUT",
           headers: {
@@ -120,7 +120,7 @@ export const deleteReview = createAsyncThunk(
   async (payload: { reviewId: string; token: string }, { rejectWithValue }) => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/reviews/${payload.reviewId}`,
+        `/api/reviews/${payload.reviewId}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${payload.token}` },

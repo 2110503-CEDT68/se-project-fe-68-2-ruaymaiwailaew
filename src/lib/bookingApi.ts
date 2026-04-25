@@ -1,21 +1,14 @@
 /**
  * bookingApi.ts
  *
- * Centralised API client for the /bookings and /dentist endpoints.
- * All calls read base URLs from environment variables defined in .env:
- *   NEXT_PUBLIC_API_URL          – base for bookings
- *   NEXT_PUBLIC_API_DENTISTS_URL – dentist list endpoint
+ * Centralized API client for booking and dentist endpoints.
+ *
+ * Important:
+ * - Client code calls internal Next.js API routes (`/api/...`).
+ * - Server routes then read backend base URL from runtime env.
+ *
+ * This keeps Docker runtime configuration working without rebuilding images.
  */
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-const DENTISTS_URL = `${BASE_URL}/dentist`;
-
-if (!BASE_URL) {
-  console.warn(
-    "[bookingApi] NEXT_PUBLIC_API_URL is not set. " +
-      "Make sure it is defined in your .env file."
-  );
-}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,7 +31,7 @@ export interface BookingPayload {
   createdAt: string;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 function authHeaders(token: string): HeadersInit {
   return {
@@ -48,13 +41,29 @@ function authHeaders(token: string): HeadersInit {
 }
 
 async function handleResponse<T>(res: Response): Promise<T> {
-  const data = await res.json();
+  const contentType = res.headers.get("content-type") ?? "";
+  const isJson = contentType.includes("application/json");
+
   if (!res.ok) {
-    const message =
-      data?.message ?? `Request failed with status ${res.status}`;
+    // Try to extract a readable message without assuming JSON
+    let message = `Request failed with status ${res.status}`;
+    if (isJson) {
+      try {
+        const errData = await res.json();
+        message = errData?.message ?? message;
+      } catch {
+        // ignore parse errors
+      }
+    }
     throw new Error(message);
   }
-  return data as T;
+
+  if (!isJson) {
+    // Non-JSON success (e.g. 204 No Content or unexpected HTML)
+    return undefined as unknown as T;
+  }
+
+  return res.json() as Promise<T>;
 }
 
 // ─── Normalisation ────────────────────────────────────────────────────────────
@@ -104,23 +113,14 @@ export function normalizeBooking(b: any): BookingPayload {
  * Fetch all bookings for the authenticated user / dentist.
  */
 export async function getBookings(token: string): Promise<BookingPayload[]> {
-  const res = await fetch(`${BASE_URL}/bookings/availability`, {
+  const res = await fetch("/api/bookings/availability", {
     headers: authHeaders(token),
   });
-  
-  // ✅ log raw response status
-  console.log("📡 Status:", res.status, res.statusText);
-  
+
   const data = await handleResponse<{ data: any[] }>(res);
-  
-  // ✅ log ข้อมูลดิบจาก API
-  console.log("📦 Raw data:", JSON.stringify(data, null, 2));
-  
+
   const mapped = (data.data ?? []).map(normalizeBooking);
-  
-  // ✅ log หลัง normalize
-  console.log("✅ Mapped bookings:", mapped);
-  
+
   return mapped;
 }
 
@@ -132,7 +132,7 @@ export async function createBooking(
   token: string,
   payload: { dentistId: string; date: string }
 ): Promise<BookingPayload> {
-  const res = await fetch(`${BASE_URL}/bookings`, {
+  const res = await fetch("/api/bookings", {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify({
@@ -153,7 +153,7 @@ export async function updateBooking(
   bookingId: string,
   payload: { dentistId: string; date: string }
 ): Promise<BookingPayload> {
-  const res = await fetch(`${BASE_URL}/bookings/${bookingId}`, {
+  const res = await fetch(`/api/bookings/${bookingId}`, {
     method: "PUT",
     headers: authHeaders(token),
     body: JSON.stringify({
@@ -173,7 +173,7 @@ export async function deleteBooking(
   token: string,
   bookingId: string
 ): Promise<string> {
-  const res = await fetch(`${BASE_URL}/bookings/${bookingId}`, {
+  const res = await fetch(`/api/bookings/${bookingId}`, {
     method: "DELETE",
     headers: authHeaders(token),
   });
@@ -182,14 +182,11 @@ export async function deleteBooking(
 }
 
 /**
- * GET /dentist  (NEXT_PUBLIC_API_DENTISTS_URL)
- * Fetch all dentists from the backend.
- * Uses the dentist-specific URL from .env so it can differ from the booking base.
+ * GET /api/dentist
+ * Fetch all dentists via internal API route proxy.
  */
 export async function getDentists(token: string): Promise<Dentist[]> {
-  const res = await fetch(DENTISTS_URL as string, {
-    headers: authHeaders(token),
-  });
+  const res = await fetch("/api/dentist");
   const data = await handleResponse<any>(res);
   // Backend may return { success, data: [...] } or a plain array
   const list: any[] = Array.isArray(data)
@@ -203,4 +200,76 @@ export async function getDentists(token: string): Promise<Dentist[]> {
     yearsOfExperience: d.yearsOfExperience ?? 0,
     areaOfExpertise: d.areaOfExpertise ?? "",
   }));
+}
+
+// ─── User Types ───────────────────────────────────────────────────────────────
+
+export interface UserPayload {
+  _id: string;
+  name: string;
+  email: string;
+  telephone?: string;
+  role: string;
+  isBanned?: boolean;
+  banReason?: string;
+}
+
+// ─── User API Calls ───────────────────────────────────────────────────────────
+
+/**
+ * GET /auth/users
+ * Fetch all registered users (admin only).
+ */
+export async function getUsers(token: string): Promise<UserPayload[]> {
+  const res = await fetch(`${BASE_URL}/auth/getusers`, {
+    headers: authHeaders(token),
+  });
+  const data = await handleResponse<any>(res);
+  const list: any[] = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.data)
+    ? data.data
+    : [];
+  return list.map((u: any) => ({
+    _id: String(u._id ?? u.id ?? ""),
+    name: u.name ?? "",
+    email: u.email ?? "",
+    telephone: u.telephone ?? "",
+    role: u.role ?? "user",
+    isBanned: u.isBanned ?? false,
+    banReason: u.banReason ?? "",
+  }));
+}
+
+/**
+ * POST /auth/ban
+ * Ban a user by ID with a reason.
+ */
+export async function banUser(
+  token: string,
+  userId: string,
+  reason: string
+): Promise<void> {
+  const res = await fetch(`${BASE_URL}/auth/ban`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ userId, reason }),
+  });
+  await handleResponse<unknown>(res);
+}
+
+/**
+ * POST /auth/unban
+ * Unban a previously banned user.
+ */
+export async function unbanUser(
+  token: string,
+  userId: string
+): Promise<void> {
+  const res = await fetch(`${BASE_URL}/auth/unban`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ userId }),
+  });
+  await handleResponse<unknown>(res);
 }

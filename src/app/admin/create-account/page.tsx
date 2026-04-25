@@ -49,6 +49,8 @@ export default function AdminCreateAccountPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [selectedRole, setSelectedRole] = useState<Role>("user");
+  const [yearsOfExperience, setYearsOfExperience] = useState("");
+  const [areaOfExpertise, setAreaOfExpertise] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -87,11 +89,6 @@ export default function AdminCreateAccountPage() {
       return;
     }
 
-    if (!selectedRole) {
-      toast.error("Please select a role");
-      return;
-    }
-
     if (password !== confirmPassword) {
       toast.error("Passwords do not match");
       return;
@@ -107,6 +104,23 @@ export default function AdminCreateAccountPage() {
       return;
     }
 
+    if (selectedRole === "dentist") {
+      const years = Number(yearsOfExperience);
+      if (
+        yearsOfExperience.trim() === "" ||
+        Number.isNaN(years) ||
+        years < 0
+      ) {
+        toast.error("Please enter valid years of experience");
+        return;
+      }
+
+      if (!areaOfExpertise.trim()) {
+        toast.error("Please enter area of expertise");
+        return;
+      }
+    }
+
     setIsLoading(true);
     try {
       const response = await fetch("/api/auth/admin-create-account", {
@@ -120,6 +134,12 @@ export default function AdminCreateAccountPage() {
           email,
           password,
           role: selectedRole,
+          ...(selectedRole === "dentist"
+            ? {
+                yearsOfExperience: Number(yearsOfExperience),
+                areaOfExpertise: areaOfExpertise.trim(),
+              }
+            : {}),
         }),
       });
 
@@ -265,34 +285,6 @@ export default function AdminCreateAccountPage() {
 
             <div className="pt-1 border-t border-slate-100">
               <p
-                className="text-xs text-slate-400 mb-3 mt-3"
-                style={{ fontWeight: 500 }}
-              >
-                SELECT ROLE (CHECK ONE)
-              </p>
-              <FormGroup>
-                {(Object.keys(roleMeta) as Role[]).map((role) => (
-                  <FormControlLabel
-                    key={role}
-                    control={
-                      <Checkbox
-                        checked={selectedRole === role}
-                        onChange={() => handleRoleCheck(role)}
-                      />
-                    }
-                    label={
-                      <span className="inline-flex items-center gap-2 text-slate-700">
-                        {roleMeta[role].icon}
-                        {roleMeta[role].label}
-                      </span>
-                    }
-                  />
-                ))}
-              </FormGroup>
-            </div>
-
-            <div className="pt-1 border-t border-slate-100">
-              <p
                 className="text-xs text-slate-400 mb-4 mt-3"
                 style={{ fontWeight: 500 }}
               >
@@ -387,6 +379,62 @@ export default function AdminCreateAccountPage() {
                   }}
                 />
               </div>
+            </div>
+
+            <div className="pt-1 border-t border-slate-100">
+              <p
+                className="text-xs text-slate-400 mb-3 mt-3"
+                style={{ fontWeight: 500 }}
+              >
+                ROLE (select only one)
+              </p>
+              <FormGroup row>
+                {(Object.keys(roleMeta) as Role[]).map((role) => (
+                  <FormControlLabel
+                    key={role}
+                    control={
+                      <Checkbox
+                        checked={selectedRole === role}
+                        onChange={() => handleRoleCheck(role)}
+                      />
+                    }
+                    label={
+                      <span className="inline-flex items-center gap-2 text-slate-700">
+                        {roleMeta[role].icon}
+                        {roleMeta[role].label}
+                      </span>
+                    }
+                  />
+                ))}
+              </FormGroup>
+
+              {selectedRole === "dentist" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+                  <TextField
+                    label="Years of Experience"
+                    type="number"
+                    value={yearsOfExperience}
+                    onChange={(e) => setYearsOfExperience(e.target.value)}
+                    placeholder="e.g. 5"
+                    required
+                    fullWidth
+                    // {/* 👇 Fix applied here: moved min:0 to slotProps.htmlInput */}
+                    slotProps={{ 
+                      htmlInput: { min: 0 },
+                      inputLabel: { shrink: true } 
+                    }}
+                  />
+                  <TextField
+                    label="Area of Expertise"
+                    value={areaOfExpertise}
+                    onChange={(e) => setAreaOfExpertise(e.target.value)}
+                    placeholder="e.g. Orthodontics"
+                    required
+                    fullWidth
+                    slotProps={{ inputLabel: { shrink: true } }}
+                  />
+                </div>
+              )}
             </div>
 
             <MuiButton

@@ -19,7 +19,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
-    const { name, email, password, telephone, role } = await request.json();
+    const {
+      name,
+      email,
+      password,
+      telephone,
+      role,
+      yearsOfExperience,
+      areaOfExpertise,
+    } = await request.json();
 
     if (!name || !email || !password || !telephone || !role) {
       return NextResponse.json(
@@ -35,12 +43,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const registerBody = {
+      name,
+      email,
+      password,
+      telephone,
+      role,
+      privacyPolicyAccepted: true,
+      ...(role === "dentist" ? { yearsOfExperience, areaOfExpertise } : {}),
+    };
+
     const response = await fetch(`${API_AUTH_URL}/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ name, email, password, telephone, role }),
+      body: JSON.stringify(registerBody),
     });
 
     const data = await response.json();

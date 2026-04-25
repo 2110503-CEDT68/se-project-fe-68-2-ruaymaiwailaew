@@ -1,5 +1,5 @@
 {
-  "name": "se-project-fe-68-2-ruaymaiwailaew",
+  "name": "g26-se-project-fe-68-2",
   "version": "0.2.1",
   "private": true,
   "scripts": {
@@ -9,7 +9,7 @@
     "lint": "next lint",
     "test": "jest",
     "test:e2e": "playwright test"
-    },
+  },
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",

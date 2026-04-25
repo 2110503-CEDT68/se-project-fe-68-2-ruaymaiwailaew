@@ -4,7 +4,8 @@ const API_AUTH_URL = process.env.NEXT_PUBLIC_API_URL + "/auth";
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, password, telephone } = await request.json();
+    const { name, email, password, telephone, privacyPolicyAccepted } =
+      await request.json();
 
     if (!name || !email || !password) {
       return NextResponse.json(
@@ -19,7 +20,13 @@ export async function POST(request: NextRequest) {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ name, email, password, telephone }),
+      body: JSON.stringify({
+        name,
+        email,
+        password,
+        telephone,
+        privacyPolicyAccepted,
+      }),
     });
 
     const data = await response.json();

@@ -20,8 +20,10 @@ import IconButton from "@mui/material/IconButton";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
 import DialogActions from "@mui/material/DialogActions";
 import Tooltip from "@mui/material/Tooltip";
+import CircularProgress from "@mui/material/CircularProgress";
 import {
   Edit,
   Trash2,
@@ -34,12 +36,15 @@ import {
   Star,
   MessageSquare,
   UserPlus,
+  ShieldOff,
+  ShieldCheck,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { deleteBooking, loadBookings, selectAllBookings } from "@/store/slices/bookingSlice";
 import { deleteReview, loadReviews, selectAllReviews } from "@/store/slices/reviewSlice";
 import { fetchDentists, type Dentist } from "@/data/dentists";
+import { getUsers, banUser, unbanUser, type UserPayload } from "@/lib/bookingApi";
 import { toast } from "sonner";
 
 type SortKey = "userName" | "date" | "dentistName";
@@ -84,6 +89,7 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState(0);
   const [bookingSearch, setBookingSearch] = useState("");
   const [reviewSearch, setReviewSearch] = useState("");
+  const [userSearch, setUserSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
@@ -93,6 +99,14 @@ export default function AdminPage() {
   );
   const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null);
   const [dentistsList, setDentistsList] = useState<Dentist[]>([]);
+
+  // Users tab state
+  const [usersList, setUsersList] = useState<UserPayload[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [banningUser, setBanningUser] = useState<UserPayload | null>(null);
+  const [banReason, setBanReason] = useState("");
+  const [unbanningUserId, setUnbanningUserId] = useState<string | null>(null);
+  const [banActionLoading, setBanActionLoading] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) router.push("/login");
@@ -128,6 +142,23 @@ export default function AdminPage() {
     }
     dispatch(loadBookings(session.accessToken!));
   }, [session]);
+
+  // Load users when Users tab is active
+  useEffect(() => {
+    if (activeTab !== 2 || !session?.accessToken) return;
+    const loadUsers = async () => {
+      setUsersLoading(true);
+      try {
+        const data = await getUsers(session.accessToken!);
+        setUsersList(data);
+      } catch (err: any) {
+        toast.error(err.message ?? "Failed to load users");
+      } finally {
+        setUsersLoading(false);
+      }
+    };
+    loadUsers();
+  }, [activeTab, session?.accessToken]);
 
   const safeDentists = Array.isArray(dentistsList) ? dentistsList : [];
   const getDentistName = (id: string) =>
@@ -221,7 +252,58 @@ export default function AdminPage() {
     setDeletingReviewId(null);
   };
 
-  console.log(session?.accessToken)
+  const handleBanUser = async () => {
+    if (!banningUser || !banReason.trim()) return;
+    setBanActionLoading(true);
+    try {
+      await banUser(session?.accessToken || "", banningUser._id, banReason.trim());
+      setUsersList((prev) =>
+        prev.map((u) =>
+          u._id === banningUser._id
+            ? { ...u, isBanned: true, banReason: banReason.trim() }
+            : u
+        )
+      );
+      toast.success(`${banningUser.name} has been banned`);
+      setBanningUser(null);
+      setBanReason("");
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to ban user");
+    } finally {
+      setBanActionLoading(false);
+    }
+  };
+
+  const handleUnbanUser = async () => {
+    if (!unbanningUserId) return;
+    setBanActionLoading(true);
+    try {
+      await unbanUser(session?.accessToken || "", unbanningUserId);
+      setUsersList((prev) =>
+        prev.map((u) =>
+          u._id === unbanningUserId
+            ? { ...u, isBanned: false, banReason: "" }
+            : u
+        )
+      );
+      const user = usersList.find((u) => u._id === unbanningUserId);
+      toast.success(`${user?.name ?? "User"} has been unbanned`);
+      setUnbanningUserId(null);
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to unban user");
+    } finally {
+      setBanActionLoading(false);
+    }
+  };
+
+  const filteredUsers = usersList.filter((u) => {
+    const q = userSearch.toLowerCase();
+    return (
+      u.name.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      u.role.toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -314,6 +396,12 @@ export default function AdminPage() {
               icon={<MessageSquare size={15} />}
               iconPosition="start"
               label={`Reviews (${allReviews.length})`}
+              sx={{ fontWeight: 500, minHeight: 48 }}
+            />
+            <Tab
+              icon={<Users size={15} />}
+              iconPosition="start"
+              label={`Users (${usersList.length})`}
               sx={{ fontWeight: 500, minHeight: 48 }}
             />
           </Tabs>
@@ -663,6 +751,193 @@ export default function AdminPage() {
             )}
           </Paper>
         )}
+
+        {/* ── USERS TAB ─────────────────────────────────────────────────────── */}
+        {activeTab === 2 && (
+          <Paper
+            sx={{
+              borderRadius: "16px",
+              border: "1px solid #f1f5f9",
+              overflow: "hidden",
+            }}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 border-b border-slate-100">
+              <div>
+                <h2 className="text-slate-800" style={{ fontWeight: 600 }}>
+                  User Management
+                </h2>
+                <p className="text-slate-400 text-sm">
+                  {filteredUsers.length} result
+                  {filteredUsers.length !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <TextField
+                placeholder="Search users..."
+                value={userSearch}
+                onChange={(e) => setUserSearch(e.target.value)}
+                size="small"
+                sx={{ width: { xs: "100%", sm: 260 } }}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search size={15} color="#94a3b8" />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+            </div>
+
+            {usersLoading ? (
+              <div className="flex justify-center items-center py-16">
+                <CircularProgress size={32} />
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="text-center py-16">
+                <Users className="w-10 h-10 text-slate-200 mx-auto mb-4" />
+                <h3 className="text-slate-700 mb-1" style={{ fontWeight: 600 }}>
+                  {userSearch ? "No results found" : "No users yet"}
+                </h3>
+                <p className="text-slate-400 text-sm">
+                  {userSearch
+                    ? "Try a different search term"
+                    : "Registered users will appear here"}
+                </p>
+              </div>
+            ) : (
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>User</TableCell>
+                      <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>Email</TableCell>
+                      <TableCell>Role</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell>Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {filteredUsers.map((user) => (
+                      <TableRow key={user._id} hover>
+                        <TableCell>
+                          <div className="flex items-center gap-2.5">
+                            <Avatar
+                              sx={{
+                                width: 32,
+                                height: 32,
+                                bgcolor: user.isBanned ? "#fee2e2" : "#dbeafe",
+                                color: user.isBanned ? "#dc2626" : "#2563eb",
+                                fontSize: "0.75rem",
+                                fontWeight: 700,
+                              }}
+                            >
+                              {user.name.charAt(0).toUpperCase()}
+                            </Avatar>
+                            <span
+                              className="text-slate-700 text-sm"
+                              style={{ fontWeight: 500 }}
+                            >
+                              {user.name}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
+                          <span className="text-slate-500 text-sm">{user.email}</span>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={user.role}
+                            size="small"
+                            sx={{
+                              bgcolor: user.role === "admin" ? "#eff6ff" : user.role === "dentist" ? "#f0fdf4" : "#f8fafc",
+                              color: user.role === "admin" ? "#2563eb" : user.role === "dentist" ? "#15803d" : "#64748b",
+                              border: `1px solid ${user.role === "admin" ? "#bfdbfe" : user.role === "dentist" ? "#bbf7d0" : "#e2e8f0"}`,
+                              fontSize: "0.7rem",
+                              fontWeight: 600,
+                              textTransform: "capitalize",
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {user.isBanned ? (
+                            <Tooltip title={user.banReason ? `Reason: ${user.banReason}` : "Banned"}>
+                              <Chip
+                                label="Banned"
+                                size="small"
+                                sx={{
+                                  bgcolor: "#fff1f2",
+                                  color: "#dc2626",
+                                  border: "1px solid #fecaca",
+                                  fontSize: "0.7rem",
+                                  fontWeight: 600,
+                                }}
+                              />
+                            </Tooltip>
+                          ) : (
+                            <Chip
+                              label="Active"
+                              size="small"
+                              sx={{
+                                bgcolor: "#f0fdf4",
+                                color: "#15803d",
+                                border: "1px solid #bbf7d0",
+                                fontSize: "0.7rem",
+                                fontWeight: 600,
+                              }}
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            {user.isBanned ? (
+                              <MuiButton
+                                variant="contained"
+                                size="small"
+                                onClick={() => setUnbanningUserId(user._id)}
+                                sx={{
+                                  borderRadius: "8px",
+                                  bgcolor: "#15803d",
+                                  fontSize: "0.75rem",
+                                  fontWeight: 600,
+                                  textTransform: "none",
+                                  "&:hover": { bgcolor: "#166534" },
+                                }}
+                              >
+                                Unban
+                              </MuiButton>
+                            ) : (
+                              <MuiButton
+                                variant="contained"
+                                size="small"
+                                onClick={() => {
+                                  setBanningUser(user);
+                                  setBanReason("");
+                                }}
+                                disabled={user.role === "admin"}
+                                sx={{
+                                  borderRadius: "8px",
+                                  bgcolor: "#dc2626",
+                                  fontSize: "0.75rem",
+                                  fontWeight: 600,
+                                  textTransform: "none",
+                                  "&:hover": { bgcolor: "#b91c1c" },
+                                  "&.Mui-disabled": { bgcolor: "#f1f5f9", color: "#94a3b8" },
+                                }}
+                              >
+                                Ban
+                              </MuiButton>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </Paper>
+        )}
       </main>
 
       {/* Delete Booking Dialog */}
@@ -747,6 +1022,90 @@ export default function AdminPage() {
             }}
           >
             Delete
+          </MuiButton>
+        </DialogActions>
+      </Dialog>
+
+      {/* Ban User Dialog */}
+      <Dialog
+        open={!!banningUser}
+        onClose={() => { setBanningUser(null); setBanReason(""); }}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Ban User</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2, fontSize: "0.875rem" }}>
+            You are about to ban{" "}
+            <strong className="text-slate-700">{banningUser?.name}</strong>.
+            Please provide a reason.
+          </DialogContentText>
+          <TextField
+            autoFocus
+            label="Reason"
+            placeholder="e.g. misinformation, spam..."
+            value={banReason}
+            onChange={(e) => setBanReason(e.target.value)}
+            fullWidth
+            multiline
+            minRows={2}
+            size="small"
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <MuiButton
+            onClick={() => { setBanningUser(null); setBanReason(""); }}
+            variant="outlined"
+            disabled={banActionLoading}
+            sx={{ borderRadius: "10px", borderColor: "#e2e8f0", color: "#374151" }}
+          >
+            Cancel
+          </MuiButton>
+          <MuiButton
+            onClick={handleBanUser}
+            variant="contained"
+            disabled={!banReason.trim() || banActionLoading}
+            sx={{ borderRadius: "10px", bgcolor: "#dc2626", "&:hover": { bgcolor: "#b91c1c" } }}
+          >
+            {banActionLoading ? <CircularProgress size={16} color="inherit" /> : "Ban User"}
+          </MuiButton>
+        </DialogActions>
+      </Dialog>
+
+      {/* Unban User Dialog */}
+      <Dialog
+        open={!!unbanningUserId}
+        onClose={() => setUnbanningUserId(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Unban User?</DialogTitle>
+        <DialogContent>
+          <p className="text-slate-500 text-sm">
+            Remove ban for{" "}
+            <strong className="text-slate-700">
+              {usersList.find((u) => u._id === unbanningUserId)?.name}
+            </strong>
+            ? They will regain access to the platform.
+          </p>
+        </DialogContent>
+        <DialogActions>
+          <MuiButton
+            onClick={() => setUnbanningUserId(null)}
+            variant="outlined"
+            disabled={banActionLoading}
+            sx={{ borderRadius: "10px", borderColor: "#e2e8f0", color: "#374151" }}
+          >
+            Cancel
+          </MuiButton>
+          <MuiButton
+            onClick={handleUnbanUser}
+            variant="contained"
+            disabled={banActionLoading}
+            sx={{ borderRadius: "10px", bgcolor: "#2563eb", "&:hover": { bgcolor: "#1d4ed8" } }}
+          >
+            {banActionLoading ? <CircularProgress size={16} color="inherit" /> : "Unban User"}
           </MuiButton>
         </DialogActions>
       </Dialog>
