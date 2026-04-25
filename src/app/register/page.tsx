@@ -9,6 +9,11 @@ import MuiButton from "@mui/material/Button";
 import InputAdornment from "@mui/material/InputAdornment";
 import IconButton from "@mui/material/IconButton";
 import LinearProgress from "@mui/material/LinearProgress";
+import Checkbox from "@mui/material/Checkbox";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
 import { Eye, EyeOff, ArrowLeft, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,11 +25,14 @@ const strengthMeta = [
 ];
 
 export default function RegisterPage() {
+  const [openDoc, setOpenDoc] = useState<"terms" | "privacy" | null>(null);
   const [name, setName] = useState("");
   const [telephone, setTelephone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [privacyPolicyAccepted, setPrivacyPolicyAccepted] = useState(false);
+  const [showPrivacyError, setShowPrivacyError] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -70,6 +78,12 @@ export default function RegisterPage() {
       toast.error("Please enter a valid email");
       return;
     }
+    if (!privacyPolicyAccepted) {
+      setShowPrivacyError(true);
+      return;
+    }
+
+    setShowPrivacyError(false);
 
     setIsLoading(true);
     try {
@@ -79,7 +93,13 @@ export default function RegisterPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name, email, password, telephone }),
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          telephone,
+          privacyPolicyAccepted,
+        }),
       });
 
       const data = await response.json();
@@ -338,6 +358,61 @@ export default function RegisterPage() {
                     },
                   }}
                 />
+
+                <div className="mt-3">
+                  <div className="flex items-start gap-2">
+                    <Checkbox
+                      id="privacy-policy-checkbox"
+                      checked={privacyPolicyAccepted}
+                      onChange={(e) => {
+                        setPrivacyPolicyAccepted(e.target.checked);
+                        if (e.target.checked) {
+                          setShowPrivacyError(false);
+                        }
+                      }}
+                      sx={{
+                        p: "2px",
+                        mt: 0,
+                        "& .MuiSvgIcon-root": {
+                          fontSize: 18,
+                        },
+                      }}
+                    />
+                    <label
+                      htmlFor="privacy-policy-checkbox"
+                      className="text-xs text-slate-600 leading-relaxed mt-0.5"
+                    >
+                      By creating an account, you agree to our{" "}
+                      <button
+                        type="button"
+                        className="text-blue-600 underline underline-offset-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenDoc("terms");
+                        }}
+                      >
+                        Terms
+                      </button>{" "}
+                      and have read and acknowledge the{" "}
+                      <button
+                        type="button"
+                        className="text-blue-600 underline underline-offset-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenDoc("privacy");
+                        }}
+                      >
+                        Global Privacy Statement
+                      </button>
+                      .
+                    </label>
+                  </div>
+                  {showPrivacyError && (
+                    <p className="text-red-600 text-xs mt-1">
+                      You must agree to the privacy policy to continue
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -377,6 +452,63 @@ export default function RegisterPage() {
           </p>
         </div>
       </div>
+
+      <Dialog
+        open={openDoc === "terms"}
+        onClose={() => setOpenDoc(null)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Terms</DialogTitle>
+        <DialogContent dividers>
+          <div className="space-y-3 text-sm text-slate-700 leading-6">
+            <p>
+              By creating an account, you agree to use DentistBooking lawfully
+              and provide accurate registration details.
+            </p>
+            <p>
+              You are responsible for keeping your credentials secure and for
+              activities under your account.
+            </p>
+            <p>
+              We may update these terms over time. Continued use means you
+              accept the latest version.
+            </p>
+          </div>
+        </DialogContent>
+        <DialogActions>
+          <MuiButton onClick={() => setOpenDoc(null)}>Close</MuiButton>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={openDoc === "privacy"}
+        onClose={() => setOpenDoc(null)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Global Privacy Statement</DialogTitle>
+        <DialogContent dividers>
+          <div className="space-y-3 text-sm text-slate-700 leading-6">
+            <p>
+              We collect information such as name, email, and phone number to
+              provide booking and account services.
+            </p>
+            <p>
+              Your information is used for service delivery, security, and
+              support. We do not use your personal data beyond legitimate
+              service purposes.
+            </p>
+            <p>
+              You may request updates or deletion of your personal information
+              in line with applicable laws.
+            </p>
+          </div>
+        </DialogContent>
+        <DialogActions>
+          <MuiButton onClick={() => setOpenDoc(null)}>Close</MuiButton>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 }
