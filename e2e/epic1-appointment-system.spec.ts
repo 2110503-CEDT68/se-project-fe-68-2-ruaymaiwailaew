@@ -205,12 +205,12 @@ async function getSessionInfo(page: Page): Promise<{
   };
 }
 
-test.describe("Epic 1 - Appointment System", () => {
+test.describe("EP-1", () => {
   test.beforeEach(async ({ page }) => {
     await mockNoDatabaseApi(page);
   });
 
-  test("Auth smoke: admin can sign in with provided credentials", async ({ page }) => {
+  test("Re-check : Can get session information", async ({ page }) => {
     await loginAs(page, "admin");
 
     const sessionResponse = await page.request.get(`${PLAYWRIGHT_BASE_URL}/api/auth/session`);
