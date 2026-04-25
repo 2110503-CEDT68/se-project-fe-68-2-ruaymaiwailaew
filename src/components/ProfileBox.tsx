@@ -9,19 +9,19 @@ import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import Popover from "@mui/material/Popover";
 import Typography from "@mui/material/Typography";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
-interface ProfileBox {
+interface ProfileDropdownProps {
   userName: string;
   userEmail: string;
   userInitial: string;
 }
 
-export default function ProfileBox({
+export default function ProfileDropdown({
   userName,
   userEmail,
   userInitial,
-}: ProfileBox) {
+}: ProfileDropdownProps) {
   const router = useRouter();
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const open = Boolean(anchor);
@@ -106,8 +106,9 @@ export default function ProfileBox({
 
         <Divider />
 
-        {/* Edit button */}
-        <Box sx={{ px: 2, py: 1.5 }}>
+        {/* Action buttons */}
+        <Box sx={{ px: 2, py: 1.5, display: "flex", flexDirection: "column", gap: 1 }}>
+          {/* Edit Profile */}
           <Button
             fullWidth
             variant="outlined"
@@ -123,6 +124,7 @@ export default function ProfileBox({
               fontSize: "0.82rem",
               fontWeight: 500,
               textTransform: "none",
+              justifyContent: "flex-start",
               "&:hover": {
                 borderColor: "#2563eb",
                 color: "#2563eb",
@@ -131,6 +133,33 @@ export default function ProfileBox({
             }}
           >
             Edit Profile
+          </Button>
+
+          {/* Delete Account */}
+          <Button
+            fullWidth
+            variant="outlined"
+            startIcon={<Trash2 size={14} />}
+            onClick={() => {
+              setAnchor(null);
+              router.push("/profile/delete");
+            }}
+            sx={{
+              borderRadius: 2,
+              borderColor: "#fee2e2",
+              color: "#ef4444",
+              fontSize: "0.82rem",
+              fontWeight: 500,
+              textTransform: "none",
+              justifyContent: "flex-start",
+              "&:hover": {
+                borderColor: "#ef4444",
+                color: "#dc2626",
+                bgcolor: "#fff1f2",
+              },
+            }}
+          >
+            Delete Account
           </Button>
         </Box>
       </Popover>

@@ -67,6 +67,7 @@ export function useSignOut() {
 export interface UpdateProfilePayload {
   name?: string;
   telephone?: string;
+  password: string;
 }
 
 export interface UpdateProfileResult {
@@ -129,4 +130,54 @@ export function useUpdateProfile() {
   );
 
   return { updateProfile, isLoading, error, result };
+}
+
+/**
+ * Custom hook to delete user account
+ * Returns: { deleteAccount, isLoading, error }
+ */
+export function useDeleteAccount() {
+  const { accessToken } = useAuthUser();
+  const signOut = useSignOut();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const deleteAccount = useCallback(
+    async (password: string): Promise<boolean> => {
+      if (!accessToken) {
+        setError("Session expired. Please log in again.");
+        return false;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const res = await fetch(`${BASE_URL}/auth/deleteaccount`, {
+          method: "POST",
+          headers: authHeaders(accessToken),
+          body: JSON.stringify({ password }),
+        });
+
+        console.log("📡 [deleteAccount] Status:", res.status, res.statusText);
+
+        await handleResponse(res);
+
+        console.log("✅ [deleteAccount] Success — signing out");
+
+        await signOut();
+        return true;
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Unexpected error occurred";
+        console.error("❌ [deleteAccount] Error:", errorMessage);
+        setError(errorMessage);
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [accessToken, signOut]
+  );
+
+  return { deleteAccount, isLoading, error };
 }

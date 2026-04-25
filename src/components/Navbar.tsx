@@ -61,7 +61,7 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
   return (
     <>
       <AppBar
-        position="sticky"
+        position="fixed"
         elevation={0}
         sx={{
           backgroundColor: "white",
@@ -72,9 +72,9 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
       >
         <Toolbar
           sx={{
-            maxWidth: "80rem",
+            // maxWidth: "80rem",
             width: "100%",
-            mx: "auto",
+            // mx: "auto",
             px: { xs: 2, sm: 3, lg: 4 },
             minHeight: "64px !important",
           }}

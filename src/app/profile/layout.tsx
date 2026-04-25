@@ -13,14 +13,27 @@ import {
   Avatar,
   Divider,
 } from "@mui/material";
-import { User, Shield, Bell } from "lucide-react";
-import { useAuthUser } from "@/lib/useAuth";
+import { User, Shield, Bell, Trash2 } from "lucide-react";
+import { useAuthUser } from "@/store";
 
-const NAV_ITEMS = [
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ReactNode;
+  danger?: boolean;
+}
+
+const NAV_ITEMS: NavItem[] = [
   {
     label: "Edit Profile",
     href: "/profile/edit",
     icon: <User size={18} />,
+  },
+  {
+    label: "Delete Account",
+    href: "/profile/delete",
+    icon: <Trash2 size={18} />,
+    danger: true,
   },
 ];
 
@@ -134,11 +147,21 @@ export default function ProfileLayout({ children }: { children: ReactNode }) {
                     borderRadius: 2,
                     px: 2,
                     py: 1,
-                    bgcolor: active ? "#eff6ff" : "transparent",
-                    color: active ? "#2563eb" : "#475569",
+                    bgcolor: active
+                      ? item.danger
+                        ? "#fff1f2"
+                        : "#eff6ff"
+                      : "transparent",
+                    color: active
+                      ? item.danger
+                        ? "#dc2626"
+                        : "#2563eb"
+                      : item.danger
+                      ? "#ef4444"
+                      : "#475569",
                     "&:hover": {
-                      bgcolor: active ? "#eff6ff" : "#f8fafc",
-                      color: active ? "#2563eb" : "#1e293b",
+                      bgcolor: item.danger ? "#fff1f2" : active ? "#eff6ff" : "#f8fafc",
+                      color: item.danger ? "#dc2626" : active ? "#2563eb" : "#1e293b",
                     },
                     transition: "all 0.15s",
                   }}
@@ -146,7 +169,9 @@ export default function ProfileLayout({ children }: { children: ReactNode }) {
                   <ListItemIcon
                     sx={{
                       minWidth: 34,
-                      color: active ? "#2563eb" : "#94a3b8",
+                      color: active
+                        ? item.danger ? "#dc2626" : "#2563eb"
+                        : item.danger ? "#f87171" : "#94a3b8",
                     }}
                   >
                     {item.icon}
@@ -168,7 +193,7 @@ export default function ProfileLayout({ children }: { children: ReactNode }) {
                       sx={{
                         width: 3,
                         height: 20,
-                        bgcolor: "#2563eb",
+                        bgcolor: item.danger ? "#dc2626" : "#2563eb",
                         borderRadius: 4,
                         ml: 1,
                       }}
