@@ -19,7 +19,13 @@ export async function POST(request: NextRequest) {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ name, email, password, telephone }),
+      body: JSON.stringify({
+        name,
+        email,
+        password,
+        telephone,
+        privacyPolicyAccepted: true,
+      }),
     });
 
     const data = await response.json();
