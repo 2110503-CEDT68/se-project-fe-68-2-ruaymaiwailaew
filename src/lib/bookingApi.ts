@@ -48,13 +48,29 @@ function authHeaders(token: string): HeadersInit {
 }
 
 async function handleResponse<T>(res: Response): Promise<T> {
-  const data = await res.json();
+  const contentType = res.headers.get("content-type") ?? "";
+  const isJson = contentType.includes("application/json");
+
   if (!res.ok) {
-    const message =
-      data?.message ?? `Request failed with status ${res.status}`;
+    // Try to extract a readable message without assuming JSON
+    let message = `Request failed with status ${res.status}`;
+    if (isJson) {
+      try {
+        const errData = await res.json();
+        message = errData?.message ?? message;
+      } catch {
+        // ignore parse errors
+      }
+    }
     throw new Error(message);
   }
-  return data as T;
+
+  if (!isJson) {
+    // Non-JSON success (e.g. 204 No Content or unexpected HTML)
+    return undefined as unknown as T;
+  }
+
+  return res.json() as Promise<T>;
 }
 
 // ─── Normalisation ────────────────────────────────────────────────────────────
@@ -203,4 +219,76 @@ export async function getDentists(token: string): Promise<Dentist[]> {
     yearsOfExperience: d.yearsOfExperience ?? 0,
     areaOfExpertise: d.areaOfExpertise ?? "",
   }));
+}
+
+// ─── User Types ───────────────────────────────────────────────────────────────
+
+export interface UserPayload {
+  _id: string;
+  name: string;
+  email: string;
+  telephone?: string;
+  role: string;
+  isBanned?: boolean;
+  banReason?: string;
+}
+
+// ─── User API Calls ───────────────────────────────────────────────────────────
+
+/**
+ * GET /auth/users
+ * Fetch all registered users (admin only).
+ */
+export async function getUsers(token: string): Promise<UserPayload[]> {
+  const res = await fetch(`${BASE_URL}/auth/getusers`, {
+    headers: authHeaders(token),
+  });
+  const data = await handleResponse<any>(res);
+  const list: any[] = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.data)
+    ? data.data
+    : [];
+  return list.map((u: any) => ({
+    _id: String(u._id ?? u.id ?? ""),
+    name: u.name ?? "",
+    email: u.email ?? "",
+    telephone: u.telephone ?? "",
+    role: u.role ?? "user",
+    isBanned: u.isBanned ?? false,
+    banReason: u.banReason ?? "",
+  }));
+}
+
+/**
+ * POST /auth/ban
+ * Ban a user by ID with a reason.
+ */
+export async function banUser(
+  token: string,
+  userId: string,
+  reason: string
+): Promise<void> {
+  const res = await fetch(`${BASE_URL}/auth/ban`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ userId, reason }),
+  });
+  await handleResponse<unknown>(res);
+}
+
+/**
+ * POST /auth/unban
+ * Unban a previously banned user.
+ */
+export async function unbanUser(
+  token: string,
+  userId: string
+): Promise<void> {
+  const res = await fetch(`${BASE_URL}/auth/unban`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ userId }),
+  });
+  await handleResponse<unknown>(res);
 }
