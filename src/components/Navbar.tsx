@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import AppBar from "@mui/material/AppBar";
@@ -26,6 +26,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { useSession, signOut as nextAuthSignOut } from "next-auth/react";
+import ProfileBox from "./ProfileBox";
 
 interface NavbarProps {
   variant?: "user" | "admin";
@@ -42,7 +43,7 @@ const LogoIcon = () => (
 );
 
 export default function Navbar({ variant = "user" }: NavbarProps) {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -56,12 +57,11 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
   const userName = user?.name ?? "User";
   const userEmail = user?.email ?? "";
   const userRole = user?.role ?? "user";
-  const homeRoute = "/";
 
   return (
     <>
       <AppBar
-        position="sticky"
+        position="fixed"
         elevation={0}
         sx={{
           backgroundColor: "white",
@@ -72,16 +72,16 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
       >
         <Toolbar
           sx={{
-            maxWidth: "80rem",
+            // maxWidth: "80rem",
             width: "100%",
-            mx: "auto",
+            // mx: "auto",
             px: { xs: 2, sm: 3, lg: 4 },
             minHeight: "64px !important",
           }}
         >
           {/* Logo */}
           <Link
-            href={homeRoute}
+            href="/"
             style={{
               textDecoration: "none",
               display: "flex",
@@ -103,9 +103,7 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
             >
               <LogoIcon />
             </div>
-            <span
-              style={{ color: "#1e293b", fontSize: "1.1rem", fontWeight: 600 }}
-            >
+            <span style={{ color: "#1e293b", fontSize: "1.1rem", fontWeight: 600 }}>
               Dentist<span style={{ color: "#2563eb" }}>Booking</span>
             </span>
           </Link>
@@ -205,35 +203,16 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
               />
             )}
 
-            {userEmail != "" && (
+            {userEmail !== "" && (
               <>
-                <Divider
-                  orientation="vertical"
-                  flexItem
-                  sx={{ mx: 1, my: 1.5 }}
-                />
+                <Divider orientation="vertical" flexItem sx={{ mx: 1, my: 1.5 }} />
 
-                {/* Avatar + Name */}
-                <div className="flex items-center gap-2">
-                  <Avatar
-                    sx={{
-                      width: 32,
-                      height: 32,
-                      bgcolor: "#dbeafe",
-                      color: "#2563eb",
-                      fontSize: "0.8rem",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {userInitial}
-                  </Avatar>
-                  <span
-                    className="text-sm text-slate-700 hidden lg:block"
-                    style={{ fontWeight: 500 }}
-                  >
-                    {userName}
-                  </span>
-                </div>
+                {/* ── Profile Dropdown ── */}
+                <ProfileBox
+                  userName={userName}
+                  userEmail={userEmail}
+                  userInitial={userInitial}
+                />
 
                 <MuiButton
                   startIcon={<LogOut size={15} />}
@@ -272,7 +251,13 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
         slotProps={{ paper: { sx: { width: 260 } } }}
       >
         <div className="flex items-center justify-between p-4 border-b border-slate-100">
-          <div className="flex items-center gap-2">
+          <div
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => {
+              setDrawerOpen(false);
+              router.push("/profile/edit");
+            }}
+          >
             <Avatar
               sx={{
                 width: 32,
@@ -286,10 +271,7 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
               {userInitial}
             </Avatar>
             <div>
-              <div
-                className="text-sm text-slate-800"
-                style={{ fontWeight: 600 }}
-              >
+              <div className="text-sm text-slate-800" style={{ fontWeight: 600 }}>
                 {userName}
               </div>
               <div className="text-xs text-slate-400">{userEmail}</div>
@@ -309,10 +291,7 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
             <>
               <ListItem disablePadding>
                 <ListItemButton
-                  onClick={() => {
-                    router.push("/dashboard");
-                    setDrawerOpen(false);
-                  }}
+                  onClick={() => { router.push("/dashboard"); setDrawerOpen(false); }}
                   sx={{ borderRadius: 2, mb: 0.5 }}
                 >
                   <ListItemIcon sx={{ minWidth: 36 }}>
@@ -320,23 +299,13 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
                   </ListItemIcon>
                   <ListItemText
                     primary="Dashboard"
-                    slotProps={{
-                      primary: {
-                        sx: {
-                          fontSize: "0.875rem",
-                          color: "#374151",
-                        },
-                      },
-                    }}
+                    slotProps={{ primary: { sx: { fontSize: "0.875rem", color: "#374151" } } }}
                   />
                 </ListItemButton>
               </ListItem>
               <ListItem disablePadding>
                 <ListItemButton
-                  onClick={() => {
-                    router.push("/my-booking");
-                    setDrawerOpen(false);
-                  }}
+                  onClick={() => { router.push("/my-booking"); setDrawerOpen(false); }}
                   sx={{ borderRadius: 2, mb: 0.5 }}
                 >
                   <ListItemIcon sx={{ minWidth: 36 }}>
@@ -344,14 +313,7 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
                   </ListItemIcon>
                   <ListItemText
                     primary="My Booking"
-                    slotProps={{
-                      primary: {
-                        sx: {
-                          fontSize: "0.875rem",
-                          color: "#374151",
-                        },
-                      },
-                    }}
+                    slotProps={{ primary: { sx: { fontSize: "0.875rem", color: "#374151" } } }}
                   />
                 </ListItemButton>
               </ListItem>
@@ -360,10 +322,7 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
           {variant === "user" && userRole === "dentist" && (
             <ListItem disablePadding>
               <ListItemButton
-                onClick={() => {
-                  router.push("/dentist-appointments");
-                  setDrawerOpen(false);
-                }}
+                onClick={() => { router.push("/dentist-appointments"); setDrawerOpen(false); }}
                 sx={{ borderRadius: 2, mb: 0.5 }}
               >
                 <ListItemIcon sx={{ minWidth: 36 }}>
@@ -371,14 +330,7 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
                 </ListItemIcon>
                 <ListItemText
                   primary="My Appointments"
-                  slotProps={{
-                    primary: {
-                      sx: {
-                        fontSize: "0.875rem",
-                        color: "#374151",
-                      },
-                    },
-                  }}
+                  slotProps={{ primary: { sx: { fontSize: "0.875rem", color: "#374151" } } }}
                 />
               </ListItemButton>
             </ListItem>
@@ -386,10 +338,7 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
           {variant === "user" && userRole === "admin" && (
             <ListItem disablePadding>
               <ListItemButton
-                onClick={() => {
-                  router.push("/admin/create-account");
-                  setDrawerOpen(false);
-                }}
+                onClick={() => { router.push("/admin/create-account"); setDrawerOpen(false); }}
                 sx={{ borderRadius: 2, mb: 0.5 }}
               >
                 <ListItemIcon sx={{ minWidth: 36 }}>
@@ -397,14 +346,7 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
                 </ListItemIcon>
                 <ListItemText
                   primary="Create Account"
-                  slotProps={{
-                    primary: {
-                      sx: {
-                        fontSize: "0.875rem",
-                        color: "#374151",
-                      },
-                    },
-                  }}
+                  slotProps={{ primary: { sx: { fontSize: "0.875rem", color: "#374151" } } }}
                 />
               </ListItemButton>
             </ListItem>
@@ -412,26 +354,15 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
           {variant === "admin" && (
             <ListItem disablePadding>
               <ListItemButton
+                onClick={() => { router.push("/dashboard"); setDrawerOpen(false); }}
                 sx={{ borderRadius: 2, mb: 0.5 }}
-                onClick={() => {
-                  router.push("/dashboard");
-                  setDrawerOpen(false);
-                }}
               >
                 <ListItemIcon sx={{ minWidth: 36 }}>
                   <Shield size={18} color="#2563eb" />
                 </ListItemIcon>
                 <ListItemText
                   primary="Admin Panel"
-                  slotProps={{
-                    primary: {
-                      sx: {
-                        fontSize: "0.875rem",
-                        color: "#1d4ed8",
-                        fontWeight: 600,
-                      },
-                    },
-                  }}
+                  slotProps={{ primary: { sx: { fontSize: "0.875rem", color: "#1d4ed8", fontWeight: 600 } } }}
                 />
               </ListItemButton>
             </ListItem>
@@ -444,26 +375,14 @@ export default function Navbar({ variant = "user" }: NavbarProps) {
           <ListItem disablePadding>
             <ListItemButton
               onClick={handleLogout}
-              sx={{
-                borderRadius: 2,
-                mt: 0.5,
-                "&:hover": { bgcolor: "#fff1f2" },
-              }}
+              sx={{ borderRadius: 2, mt: 0.5, "&:hover": { bgcolor: "#fff1f2" } }}
             >
               <ListItemIcon sx={{ minWidth: 36 }}>
                 <LogOut size={18} color="#f87171" />
               </ListItemIcon>
               <ListItemText
                 primary="Logout"
-                slotProps={{
-                  primary: {
-                    sx: {
-                      fontSize: "0.875rem",
-                      color: "#ef4444",
-                      fontWeight: 500,
-                    },
-                  },
-                }}
+                slotProps={{ primary: { sx: { fontSize: "0.875rem", color: "#ef4444", fontWeight: 500 } } }}
               />
             </ListItemButton>
           </ListItem>
