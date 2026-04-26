@@ -32,7 +32,11 @@ const USER_TC4 = {
   name: "UserForTC4",
 };
 
-
+const USER_TC6 = {
+  email: "UserForTC6@gmail.com",
+  password: "1234567",
+  name: "UserForTC6",
+};
 // ─── Helper: Login ────────────────────────────────────────────────────────────
 async function loginAs(
   page: any,
@@ -145,7 +149,7 @@ test.describe("AC2 - Banned user attempts to login", () => {
 
     test("TC6: Banned user enter wrong password → error password ผิด (not suspended)", async ({ page }) => {
         await page.goto(`${BASE_URL}/login`);
-        await page.getByPlaceholder("you@example.com").fill(USER_TC1.email);
+        await page.getByPlaceholder("you@example.com").fill(USER_TC6.email);
         await page.getByPlaceholder("••••••••").fill("wrongpassword");
         await page.getByRole("button", { name: "Sign In" }).click();
     
@@ -160,7 +164,7 @@ test.describe("AC2 - Banned user attempts to login", () => {
         ).toBeVisible();
       });
 
-    test("TC7: Banned user login ซ้ำหลายครั้ง → ยังถูก deny ทุกครั้ง", async ({ page }) => {
+    test("TC7: Banned user try to login multiple times → all deny", async ({ page }) => {
         for (let i = 0; i < 3; i++) {
             await page.goto(`${BASE_URL}/login`);
             await page.getByPlaceholder("you@example.com").fill(USER_TC1.email);
