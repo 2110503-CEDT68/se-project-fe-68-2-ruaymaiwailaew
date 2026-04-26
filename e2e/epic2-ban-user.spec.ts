@@ -124,3 +124,51 @@ test.describe("AC1 - Admin bans a user from the dashboard", () => {
         await expect(userRow.getByRole("button", { name: "Ban" })).toBeVisible();
     });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AC2: Banned user try to login
+// ─────────────────────────────────────────────────────────────────────────────
+test.describe("AC2 - Banned user attempts to login", () => {
+
+    test("TC5: Banned user login ด้วย credential ถูกต้อง → deny and show suspended message", async ({ page }) => {
+        await page.goto(`${BASE_URL}/login`);
+        await page.getByPlaceholder("you@example.com").fill(USER_TC1.email);
+        await page.getByPlaceholder("••••••••").fill(USER_TC1.password);
+        await page.getByRole("button", { name: "Sign In" }).click();
+
+        // not redirect to dashboard
+        await expect(page).not.toHaveURL(`${BASE_URL}/dashboard`);
+
+        // show suspended message
+        await expect(page.locator("[data-sonner-toast]").filter({ hasText: /This account has been banned/i })).toBeVisible();
+    });
+
+    test("TC6: Banned user enter wrong password → error password ผิด (not suspended)", async ({ page }) => {
+        await page.goto(`${BASE_URL}/login`);
+        await page.getByPlaceholder("you@example.com").fill(USER_TC1.email);
+        await page.getByPlaceholder("••••••••").fill("wrongpassword");
+        await page.getByRole("button", { name: "Sign In" }).click();
+    
+        // not show suspended message
+        await expect(
+          page.locator("[data-sonner-toast]").filter({ hasText: /suspended/i })
+        ).not.toBeVisible();
+    
+        // show error login
+        await expect(
+          page.locator("[data-sonner-toast]").filter({ hasText: /invalid|failed|incorrect/i })
+        ).toBeVisible();
+      });
+
+    test("TC7: Banned user login ซ้ำหลายครั้ง → ยังถูก deny ทุกครั้ง", async ({ page }) => {
+        for (let i = 0; i < 3; i++) {
+            await page.goto(`${BASE_URL}/login`);
+            await page.getByPlaceholder("you@example.com").fill(USER_TC1.email);
+            await page.getByPlaceholder("••••••••").fill(USER_TC1.password);
+            await page.getByRole("button", { name: "Sign In" }).click();
+      
+            await expect(page).not.toHaveURL(`${BASE_URL}/dashboard`);
+            await expect(page.locator("[data-sonner-toast]").filter({ hasText: /This account has been banned/i })).toBeVisible();
+        }
+    });
+});
