@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuthUser, useUpdateProfile } from "@/lib/useAuth";
 import { User, Phone, CheckCircle, Stethoscope, Clock, AlertCircle, Loader2, Eye, EyeOff, Lock } from "lucide-react";
+import { getDentistById ,updateDentist} from "@/lib/bookingApi";
 
 // ── types ──────────────────────────────────────────────
 interface Dentist {
@@ -14,51 +15,6 @@ interface Dentist {
 
 // ── helpers ────────────────────────────────────────────
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
-const DENTISTS_URL = `${BASE_URL}/dentists`;
-
-const authHeaders = (token: string) => ({
-  "Content-Type": "application/json",
-  Authorization: `Bearer ${token}`,
-});
-
-async function handleResponse<T>(res: Response): Promise<T> {
-  const text = await res.text();
-  const data: T = text ? JSON.parse(text) : ({} as T);
-  if (!res.ok) {
-    const message = (data as any)?.message ?? `Request failed (${res.status})`;
-    throw new Error(message);
-  }
-  return data;
-}
-
-async function getDentistById(token: string, id: string): Promise<Dentist | null> {
-  const res = await fetch(`${DENTISTS_URL}/${id}`, { headers: authHeaders(token) });
-  console.log("📡 [getDentistById] status:", res.status, res.statusText);
-  const data = await handleResponse<any>(res);
-  console.log("📦 [getDentistById] raw:", JSON.stringify(data, null, 2));
-  const d = data?.data ?? data;
-  return {
-    _id: String(d._id ?? d.id ?? ""),
-    name: d.name ?? "",
-    yearsOfExperience: d.yearsOfExperience ?? 0,
-    areaOfExpertise: d.areaOfExpertise ?? "",
-  };
-}
-
-async function updateDentist(
-  token: string,
-  id: string,
-  payload: { yearsOfExperience: number; areaOfExpertise: string }
-): Promise<void> {
-  const res = await fetch(`${DENTISTS_URL}/${id}`, {
-    method: "PUT",
-    headers: authHeaders(token),
-    body: JSON.stringify(payload),
-  });
-  console.log("📡 [updateDentist] status:", res.status, res.statusText);
-  await handleResponse(res);
-  console.log("✅ [updateDentist] success");
-}
 
 // ── sub-components ─────────────────────────────────────
 function FieldLabel({ icon, label }: { icon: React.ReactNode; label: string }) {

@@ -202,6 +202,40 @@ export async function getDentists(token: string): Promise<Dentist[]> {
   }));
 }
 
+// เพิ่มหลัง getDentists และก่อน User Types
+
+/**
+ * GET /dentists/:id
+ * Fetch a single dentist by ID.
+ */
+export async function getDentistById(token: string, id: string): Promise<Dentist | null> {
+  const res = await fetch(`${BASE_URL}/dentists/${id}`, { headers: authHeaders(token) });
+  const data = await handleResponse<any>(res);
+  const d = data?.data ?? data;
+  return {
+    _id: String(d._id ?? d.id ?? ""),
+    name: d.name ?? "",
+    yearsOfExperience: d.yearsOfExperience ?? 0,
+    areaOfExpertise: d.areaOfExpertise ?? "",
+  };
+}
+
+/**
+ * PUT /dentists/:id
+ * Update a dentist's professional details.
+ */
+export async function updateDentist(
+  token: string,
+  id: string,
+  payload: { yearsOfExperience: number; areaOfExpertise: string }
+): Promise<void> {
+  const res = await fetch(`${BASE_URL}/dentists/${id}`, {
+    method: "PUT",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+  await handleResponse(res);
+}
 // ─── User Types ───────────────────────────────────────────────────────────────
 
 export interface UserPayload {
