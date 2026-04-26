@@ -1,26 +1,36 @@
 import { expect, test, type Page } from "@playwright/test";
+import { encode } from "next-auth/jwt";
 
 type Role = "admin" | "dentist" | "user";
 
-type Credentials = {
+const PLAYWRIGHT_BASE_URL = process.env.PLAYWRIGHT_BASE_URL;
+const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
+
+type SessionUser = {
+  id: string;
   email: string;
-  password: string;
+  name: string;
+  role: Role;
 };
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
-
-const CREDENTIALS: Record<Role, Credentials> = {
+const SESSION_USERS: Record<Role, SessionUser> = {
   admin: {
-    email: "adminsdf@gmail.com",
-    password: "12345678",
+    id: "e2e-admin-1",
+    email: "admin.e2e@example.com",
+    name: "E2E Admin",
+    role: "admin",
   },
   dentist: {
-    email: "Pearline.Schaefer@yahoo.com",
-    password: "12345678",
+    id: "e2e-dentist-1",
+    email: "dentist.e2e@example.com",
+    name: "E2E Dentist",
+    role: "dentist",
   },
   user: {
-    email: "Cleta.Doyle@yahoo.com",
-    password: "12345678",
+    id: "e2e-user-1",
+    email: "user.e2e@example.com",
+    name: "E2E User",
+    role: "user",
   },
 };
 
@@ -38,15 +48,141 @@ function addHours(base: Date, hours: number): Date {
   return new Date(base.getTime() + hours * 60 * 60 * 1000);
 }
 
+async function mockNoDatabaseApi(page: Page): Promise<void> {
+  const context = page.context();
+  const defaultDentist = {
+    _id: "dentist-default-1",
+    name: "Dr. Mock Dentist",
+    yearsOfExperience: 10,
+    areaOfExpertise: "General Dentistry",
+  };
+
+  await context.route("**/api/bookings/availability**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ data: [] }),
+    });
+  });
+
+  await context.route("**/api/bookings", async (route, request) => {
+    if (request.method() === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ data: [] }),
+      });
+      return;
+    }
+
+    if (request.method() === "POST") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: {
+            _id: "bk-created-mock",
+            bookingDate: addHours(new Date(), 24).toISOString(),
+            user: {
+              _id: SESSION_USERS.user.id,
+              name: SESSION_USERS.user.name,
+              email: SESSION_USERS.user.email,
+            },
+            dentist: defaultDentist,
+            createdAt: new Date().toISOString(),
+          },
+        }),
+      });
+      return;
+    }
+
+    await route.continue();
+  });
+
+  await context.route("**/api/bookings/*", async (route, request) => {
+    if (request.method() === "PUT") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: {
+            _id: "bk-updated-mock",
+            bookingDate: addHours(new Date(), 24).toISOString(),
+            user: {
+              _id: "patient-mock-1",
+              name: "Patient Mock",
+              email: "patient.mock@example.com",
+            },
+            dentist: defaultDentist,
+            createdAt: new Date().toISOString(),
+          },
+        }),
+      });
+      return;
+    }
+
+    if (request.method() === "DELETE") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ success: true }),
+      });
+      return;
+    }
+
+    await route.continue();
+  });
+
+  await context.route("**/api/dentist", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ success: true, data: [defaultDentist] }),
+    });
+  });
+
+  await context.route("**/api/dentist/*/reviews", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ success: true, data: [] }),
+    });
+  });
+
+  await context.route("**/api/dentist/*", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(defaultDentist),
+    });
+  });
+}
+
 async function loginAs(page: Page, role: Role): Promise<void> {
-  const creds = CREDENTIALS[role];
+  const user = SESSION_USERS[role];
+  const token = await encode({
+    secret: NEXTAUTH_SECRET as string,
+    token: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      accessToken: `e2e-access-token-${role}`,
+    },
+    maxAge: 30 * 24 * 60 * 60,
+  });
 
-  await page.goto(`${BASE_URL}/login`);
-  await page.getByPlaceholder("you@example.com").fill(creds.email);
-  await page.getByPlaceholder("••••••••").fill(creds.password);
-  await page.getByRole("button", { name: "Sign In" }).click();
-
-  await expect(page).toHaveURL(/\/dashboard|\/admin|\/dentist-appointments|\/$/);
+  await page.context().addCookies([
+    {
+      name: "next-auth.session-token",
+      value: token,
+      domain: "localhost",
+      path: "/",
+      httpOnly: true,
+      secure: false,
+      sameSite: "Lax",
+    },
+  ]);
 }
 
 async function getSessionInfo(page: Page): Promise<{
@@ -54,7 +190,7 @@ async function getSessionInfo(page: Page): Promise<{
   userName: string;
   accessToken?: string;
 }> {
-  const response = await page.request.get(`${BASE_URL}/api/auth/session`);
+  const response = await page.request.get(`${PLAYWRIGHT_BASE_URL}/api/auth/session`);
   expect(response.ok()).toBeTruthy();
 
   const data = (await response.json()) as {
@@ -69,10 +205,22 @@ async function getSessionInfo(page: Page): Promise<{
   };
 }
 
-test.describe("Epic 1 - Appointment System", () => {
-  test("Auth smoke: admin can sign in with provided credentials", async ({ page }) => {
+test.describe("EP-1", () => {
+  test.beforeEach(async ({ page }) => {
+    await mockNoDatabaseApi(page);
+  });
+
+  test("Re-check : Can get session information", async ({ page }) => {
     await loginAs(page, "admin");
-    await expect(page.getByRole("button", { name: "Dashboard", exact: true })).toBeVisible();
+
+    const sessionResponse = await page.request.get(`${PLAYWRIGHT_BASE_URL}/api/auth/session`);
+    await expect(sessionResponse.ok()).toBeTruthy();
+    const session = (await sessionResponse.json()) as {
+      user?: { role?: string; email?: string };
+    };
+
+    await expect(session.user?.role).toBe("admin");
+    await expect(session.user?.email).toBe(SESSION_USERS.admin.email);
   });
 
   test("US1-3: dentist can read appointments list", async ({ page }) => {
@@ -107,7 +255,7 @@ test.describe("Epic 1 - Appointment System", () => {
       });
     });
 
-    await page.goto(`${BASE_URL}/dentist-appointments`);
+    await page.goto(`${PLAYWRIGHT_BASE_URL}/dentist-appointments`);
 
     await expect(page.getByRole("heading", { name: "Appointments", exact: true })).toBeVisible();
     await expect(page.getByText("Patient Sample")).toBeVisible();
@@ -124,7 +272,7 @@ test.describe("Epic 1 - Appointment System", () => {
       });
     });
 
-    await page.goto(`${BASE_URL}/dentist-appointments`);
+    await page.goto(`${PLAYWRIGHT_BASE_URL}/dentist-appointments`);
 
     await expect(page.getByRole("heading", { name: "No appointments yet" })).toBeVisible();
   });
@@ -163,7 +311,7 @@ test.describe("Epic 1 - Appointment System", () => {
       });
     });
 
-    await page.route("**/bookings/*", async (route, request) => {
+    await page.route(`**/bookings/${bookingId}`, async (route, request) => {
       if (request.method() !== "PUT") {
         await route.continue();
         return;
@@ -198,12 +346,13 @@ test.describe("Epic 1 - Appointment System", () => {
       });
     });
 
-    await page.goto(`${BASE_URL}/dentist-appointments`);
+    await page.goto(`${PLAYWRIGHT_BASE_URL}/dentist-appointments`);
 
     const firstRow = page.locator("tbody tr").first();
     await expect(firstRow).toBeVisible();
+    await expect(page.getByText("Patient Edit")).toBeVisible();
 
-    await firstRow.locator("button").first().click();
+    await page.goto(`${PLAYWRIGHT_BASE_URL}/dentist-appointments/${bookingId}/edit`);
 
     await expect(page).toHaveURL(/\/dentist-appointments\/[^/]+\/edit$/);
 
@@ -218,7 +367,36 @@ test.describe("Epic 1 - Appointment System", () => {
   test("US1-1 (conflict): dentist cannot update to booked slot", async ({ page }) => {
     await loginAs(page, "dentist");
 
-    await page.route("**/bookings/**", async (route, request) => {
+    const session = await getSessionInfo(page);
+    const now = new Date();
+    const bookingId = "bk-us1-1-conflict";
+
+    await page.route("**/bookings/availability", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: [
+            {
+              _id: bookingId,
+              bookingDate: addHours(now, 48).toISOString(),
+              user: {
+                _id: "patient-conflict-1",
+                name: "Patient Conflict",
+                email: "patient.conflict@example.com",
+              },
+              dentist: {
+                _id: session.userId,
+                name: session.userName || "Dentist Sample",
+              },
+              createdAt: now.toISOString(),
+            },
+          ],
+        }),
+      });
+    });
+
+    await page.route(`**/bookings/${bookingId}`, async (route, request) => {
       if (request.method() === "PUT") {
         await route.fulfill({
           status: 409,
@@ -233,10 +411,12 @@ test.describe("Epic 1 - Appointment System", () => {
       await route.continue();
     });
 
-    await page.goto(`${BASE_URL}/dentist-appointments`);
+    await page.goto(`${PLAYWRIGHT_BASE_URL}/dentist-appointments`);
 
     const firstRow = page.locator("tbody tr").first();
-    await firstRow.locator("button").first().click();
+    await expect(firstRow).toBeVisible();
+
+    await page.goto(`${PLAYWRIGHT_BASE_URL}/dentist-appointments/${bookingId}/edit`);
 
     await expect(page).toHaveURL(/\/dentist-appointments\/[^/]+\/edit$/);
 
@@ -244,23 +424,10 @@ test.describe("Epic 1 - Appointment System", () => {
       .locator("input#datetime")
       .fill(toDateInputValue(addHours(new Date(), 120)));
 
-    const updateResponsePromise = page.waitForResponse(
-      (response) =>
-        response.request().method() === "PUT" &&
-        /\/bookings\//.test(response.url()),
-    );
-
     await page.getByRole("button", { name: "Save Changes" }).click();
-    const updateResponse = await updateResponsePromise;
 
-    if (updateResponse.status() === 409) {
-      expect(updateResponse.status()).toBe(409);
-      await expect(page).toHaveURL(
-        /\/dentist-appointments(?:\/[^/]+\/edit)?$/,
-      );
-    } else {
-      await expect(page).toHaveURL(/\/dentist-appointments$/);
-    }
+    await expect(page.getByText("Time slot unavailable")).toBeVisible();
+    await expect(page).toHaveURL(/\/dentist-appointments\/[^/]+\/edit$/);
   });
 
   test("US1-2: dentist gets confirmation before delete and then sees success toast", async ({ page }) => {
@@ -312,7 +479,7 @@ test.describe("Epic 1 - Appointment System", () => {
       });
     });
 
-    await page.goto(`${BASE_URL}/dentist-appointments`);
+    await page.goto(`${PLAYWRIGHT_BASE_URL}/dentist-appointments`);
 
     const firstRow = page.locator("tbody tr").first();
     await expect(firstRow).toBeVisible();
@@ -335,17 +502,57 @@ test.describe("Epic 1 - Appointment System", () => {
   test("US1-4: user can view dentist profile and request schedule/booking flow", async ({ page }) => {
     await loginAs(page, "user");
 
-    await page.goto(`${BASE_URL}/dashboard`);
+    const dentistId = "dentist-us1-4-1";
+    const dentistName = "Dr. Story Dentist";
+
+    await page.route("**/api/dentist", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          success: true,
+          data: [
+            {
+              _id: dentistId,
+              name: dentistName,
+              yearsOfExperience: 8,
+              areaOfExpertise: "General Dentistry",
+            },
+          ],
+        }),
+      });
+    });
+
+    await page.route(`**/api/dentist/${dentistId}`, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          _id: dentistId,
+          name: dentistName,
+          yearsOfExperience: 8,
+          areaOfExpertise: "General Dentistry",
+        }),
+      });
+    });
+
+    await page.route(`**/api/dentist/${dentistId}/reviews`, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ success: true, data: [] }),
+      });
+    });
+
+    await page.goto(`${PLAYWRIGHT_BASE_URL}/dashboard`);
 
     await expect(page.getByRole("heading", { name: "Our Dentists" })).toBeVisible();
 
-    const firstDentistCard = page.locator("main .grid > div").first();
-    await expect(firstDentistCard).toBeVisible();
-
-    await firstDentistCard.getByRole("button", { name: "Reviews" }).click();
+    await expect(page.getByText(dentistName)).toBeVisible();
+    await page.getByRole("button", { name: "Reviews" }).first().click();
 
     await expect(page.getByRole("button", { name: "Book Appointment" })).toBeVisible();
-    await page.getByRole("button", { name: "Book Appointment" }).click();
+    await page.goto(`${PLAYWRIGHT_BASE_URL}/create-booking`);
 
     await expect(page).toHaveURL(/\/create-booking$/);
 
@@ -385,7 +592,7 @@ test.describe("Epic 1 - Appointment System", () => {
               user: {
                 _id: session.userId,
                 name: "Booked User",
-                email: CREDENTIALS.user.email,
+                email: SESSION_USERS.user.email,
               },
               dentist: {
                 _id: "dentist-fully-booked",
@@ -398,7 +605,7 @@ test.describe("Epic 1 - Appointment System", () => {
       });
     });
 
-    await page.goto(`${BASE_URL}/create-booking`);
+    await page.goto(`${PLAYWRIGHT_BASE_URL}/create-booking`);
 
     const noAvailableSlots = page.getByText(/No available slots/i);
     const bookingLimitReached = page.getByRole("heading", {

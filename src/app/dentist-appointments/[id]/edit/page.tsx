@@ -77,7 +77,7 @@ export default function DentistEditBookingPage() {
 
     setSaving(true);
     try {
-      await dispatch(
+      const result = await dispatch(
         updateBooking({
           bookingId: bookingId,
           dentistId: booking?.dentistId || "",
@@ -85,9 +85,15 @@ export default function DentistEditBookingPage() {
           token: session?.accessToken || "",
         }),
       );
-      await dispatch(loadBookings(session?.accessToken || ""));
-      toast.success("Appointment updated successfully");
-      router.push("/dentist-appointments");
+
+      if (updateBooking.fulfilled.match(result)) {
+        await dispatch(loadBookings(session?.accessToken || ""));
+        toast.success("Appointment updated successfully");
+        router.push("/dentist-appointments");
+      } else {
+        const message = (result.payload as string) || "Failed to update appointment";
+        toast.error(message);
+      }
     } catch (err) {
       toast.error("Failed to update appointment");
       console.error(err);

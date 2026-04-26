@@ -253,7 +253,7 @@ export default function DentistAppointmentsPage() {
           token: session?.accessToken || "",
         }),
       );
-      toast.success("Appointment deleted");
+      toast.success("Appointment deleted successfully");
       setDeletingBookingId(null);
     } catch {
       toast.error("Failed to delete appointment");
