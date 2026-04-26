@@ -223,11 +223,18 @@ export default function EditProfilePage() {
           {/* Name */}
           <div>
             <FieldLabel icon={<User size={13} />} label="Full Name" />
-            <InputField
-              value={name}
-              onChange={(v) => { setName(v); setSuccess(false); }}
-              placeholder="Enter your full name"
-            />
+          <InputField
+            value={name ?? ""}
+            onChange={(v) => {
+              if (!v.trim()) {
+                alert("Name cannot be empty");
+                return;
+              }
+              setName(v);
+              setSuccess(false);
+            }}
+            placeholder="Enter your full name"
+          />
           </div>
 
           <hr className="border-slate-100" />
