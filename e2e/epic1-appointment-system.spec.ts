@@ -190,7 +190,9 @@ async function getSessionInfo(page: Page): Promise<{
   userName: string;
   accessToken?: string;
 }> {
-  const response = await page.request.get(`${PLAYWRIGHT_BASE_URL}/api/auth/session`);
+  const response = await page.request.get(
+    `${PLAYWRIGHT_BASE_URL}/api/auth/session`,
+  );
   expect(response.ok()).toBeTruthy();
 
   const data = (await response.json()) as {
@@ -213,7 +215,9 @@ test.describe("EP-1", () => {
   test("Re-check : Can get session information", async ({ page }) => {
     await loginAs(page, "admin");
 
-    const sessionResponse = await page.request.get(`${PLAYWRIGHT_BASE_URL}/api/auth/session`);
+    const sessionResponse = await page.request.get(
+      `${PLAYWRIGHT_BASE_URL}/api/auth/session`,
+    );
     await expect(sessionResponse.ok()).toBeTruthy();
     const session = (await sessionResponse.json()) as {
       user?: { role?: string; email?: string };
@@ -257,11 +261,15 @@ test.describe("EP-1", () => {
 
     await page.goto(`${PLAYWRIGHT_BASE_URL}/dentist-appointments`);
 
-    await expect(page.getByRole("heading", { name: "Appointments", exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Appointments", exact: true }),
+    ).toBeVisible();
     await expect(page.getByText("Patient Sample")).toBeVisible();
   });
 
-  test("US1-3 (empty state): dentist sees no upcoming appointments placeholder", async ({ page }) => {
+  test("US1-3 (empty state): dentist sees no upcoming appointments placeholder", async ({
+    page,
+  }) => {
     await loginAs(page, "dentist");
 
     await page.route("**/bookings/availability", async (route) => {
@@ -274,10 +282,14 @@ test.describe("EP-1", () => {
 
     await page.goto(`${PLAYWRIGHT_BASE_URL}/dentist-appointments`);
 
-    await expect(page.getByRole("heading", { name: "No appointments yet" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "No appointments yet" }),
+    ).toBeVisible();
   });
 
-  test("US1-1: dentist can edit appointment and see success notification", async ({ page }) => {
+  test("US1-1: dentist can edit appointment and see success notification", async ({
+    page,
+  }) => {
     await loginAs(page, "dentist");
 
     const session = await getSessionInfo(page);
@@ -352,7 +364,9 @@ test.describe("EP-1", () => {
     await expect(firstRow).toBeVisible();
     await expect(page.getByText("Patient Edit")).toBeVisible();
 
-    await page.goto(`${PLAYWRIGHT_BASE_URL}/dentist-appointments/${bookingId}/edit`);
+    await page.goto(
+      `${PLAYWRIGHT_BASE_URL}/dentist-appointments/${bookingId}/edit`,
+    );
 
     await expect(page).toHaveURL(/\/dentist-appointments\/[^/]+\/edit$/);
 
@@ -360,11 +374,15 @@ test.describe("EP-1", () => {
     await page.locator("input#datetime").fill(editedDate);
     await page.getByRole("button", { name: "Save Changes" }).click();
 
-    await expect(page.getByText("Appointment updated successfully")).toBeVisible();
+    await expect(
+      page.getByText("Appointment updated successfully"),
+    ).toBeVisible();
     await expect(page).toHaveURL(/\/dentist-appointments$/);
   });
 
-  test("US1-1 (conflict): dentist cannot update to booked slot", async ({ page }) => {
+  test("US1-1 (conflict): dentist cannot update to booked slot", async ({
+    page,
+  }) => {
     await loginAs(page, "dentist");
 
     const session = await getSessionInfo(page);
@@ -416,7 +434,9 @@ test.describe("EP-1", () => {
     const firstRow = page.locator("tbody tr").first();
     await expect(firstRow).toBeVisible();
 
-    await page.goto(`${PLAYWRIGHT_BASE_URL}/dentist-appointments/${bookingId}/edit`);
+    await page.goto(
+      `${PLAYWRIGHT_BASE_URL}/dentist-appointments/${bookingId}/edit`,
+    );
 
     await expect(page).toHaveURL(/\/dentist-appointments\/[^/]+\/edit$/);
 
@@ -430,7 +450,73 @@ test.describe("EP-1", () => {
     await expect(page).toHaveURL(/\/dentist-appointments\/[^/]+\/edit$/);
   });
 
-  test("US1-2: dentist gets confirmation before delete and then sees success toast", async ({ page }) => {
+  test("US1-1 (invalid input): dentist cannot update with past date", async ({
+    page,
+  }) => {
+    await loginAs(page, "dentist");
+
+    const session = await getSessionInfo(page);
+    const now = new Date();
+    const bookingId = "bk-us1-1-invalid-date";
+
+    await page.route("**/bookings/availability", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: [
+            {
+              _id: bookingId,
+              bookingDate: addHours(now, 48).toISOString(),
+              user: {
+                _id: "patient-invalid-date",
+                name: "Patient Invalid Date",
+                email: "patient.invalid@example.com",
+              },
+              dentist: {
+                _id: session.userId,
+                name: session.userName || "Dentist Sample",
+              },
+              createdAt: now.toISOString(),
+            },
+          ],
+        }),
+      });
+    });
+
+    // The API should not be called if frontend validation works
+    await page.route(`**/bookings/${bookingId}`, (route, request) => {
+      if (request.method() === "PUT") {
+        // Fail the test if the frontend allows submitting invalid data
+        test.fail(
+          true,
+          "Form should not be submitted with a date in the past.",
+        );
+      }
+      route.continue();
+    });
+
+    await page.goto(`${PLAYWRIGHT_BASE_URL}/dentist-appointments`);
+    await page.goto(
+      `${PLAYWRIGHT_BASE_URL}/dentist-appointments/${bookingId}/edit`,
+    );
+
+    await expect(page).toHaveURL(/\/dentist-appointments\/[^/]+\/edit$/);
+
+    // Fill with a date in the past
+    const pastDate = toDateInputValue(addHours(now, -24));
+    await page.locator("input#datetime").fill(pastDate);
+
+    await page.getByRole("button", { name: "Save Changes" }).click();
+
+    // Assert that a validation message is shown and we are still on the edit page
+    await expect(page.getByText(/Cannot select a past date/i)).toBeVisible();
+    await expect(page).toHaveURL(/\/dentist-appointments\/[^/]+\/edit$/);
+  });
+
+  test("US1-2: dentist gets confirmation before delete and then sees success toast", async ({
+    page,
+  }) => {
     await loginAs(page, "dentist");
 
     const session = await getSessionInfo(page);
@@ -487,7 +573,9 @@ test.describe("EP-1", () => {
     await firstRow.locator("button").nth(1).click();
 
     await expect(page.getByText("Delete Appointment?")).toBeVisible();
-    await expect(page.getByText(/permanently delete the appointment/i)).toBeVisible();
+    await expect(
+      page.getByText(/permanently delete the appointment/i),
+    ).toBeVisible();
 
     await page.getByRole("button", { name: "Cancel" }).click();
     await expect(page.getByText("Delete Appointment?")).not.toBeVisible();
@@ -495,11 +583,15 @@ test.describe("EP-1", () => {
     await firstRow.locator("button").nth(1).click();
     await page.getByRole("button", { name: "Delete" }).click();
 
-    await expect(page.getByText(/Appointment deleted|Appointment deleted successfully/i)).toBeVisible();
+    await expect(
+      page.getByText(/Appointment deleted|Appointment deleted successfully/i),
+    ).toBeVisible();
     await expect(page.locator("tbody tr")).toHaveCount(0);
   });
 
-  test("US1-4: user can view dentist profile and request schedule/booking flow", async ({ page }) => {
+  test("US1-4: user can view dentist profile and request schedule/booking flow", async ({
+    page,
+  }) => {
     await loginAs(page, "user");
 
     const dentistId = "dentist-us1-4-1";
@@ -546,12 +638,16 @@ test.describe("EP-1", () => {
 
     await page.goto(`${PLAYWRIGHT_BASE_URL}/dashboard`);
 
-    await expect(page.getByRole("heading", { name: "Our Dentists" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Our Dentists" }),
+    ).toBeVisible();
 
     await expect(page.getByText(dentistName)).toBeVisible();
     await page.getByRole("button", { name: "Reviews" }).first().click();
 
-    await expect(page.getByRole("button", { name: "Book Appointment" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Book Appointment" }),
+    ).toBeVisible();
     await page.goto(`${PLAYWRIGHT_BASE_URL}/create-booking`);
 
     await expect(page).toHaveURL(/\/create-booking$/);
@@ -576,7 +672,9 @@ test.describe("EP-1", () => {
     }
   });
 
-  test("US1-4 (fully booked): show 'No available slots' and next available date", async ({ page }) => {
+  test("US1-4 (fully booked): show 'No available slots' and next available date", async ({
+    page,
+  }) => {
     await loginAs(page, "user");
     const session = await getSessionInfo(page);
 
