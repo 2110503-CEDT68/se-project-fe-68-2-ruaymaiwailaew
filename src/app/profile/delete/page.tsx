@@ -25,7 +25,7 @@ export default function DeleteAccountPage() {
       {/* Page header */}
       <div className="mb-2">
         <h1 className="text-xl font-bold text-slate-800">Delete Account</h1>
-        <p className="text-xs text-slate-400 mt-0.5">
+        <p className="text-xs text-slate-400 mt-3">
           Permanently remove your account and all associated data
         </p>
       </div>
@@ -127,7 +127,7 @@ export default function DeleteAccountPage() {
           ) : (
             <Trash2 size={15} />
           )}
-          {isLoading ? "Deleting..." : "Delete My Account"};
+          {isLoading ? "Deleting..." : "Delete My Account"}
         </button>
        
       </div>
