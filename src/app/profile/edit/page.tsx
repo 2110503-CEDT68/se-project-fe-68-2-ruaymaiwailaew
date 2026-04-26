@@ -198,7 +198,7 @@ export default function EditProfilePage() {
       {/* Page header */}
       <div className="mb-2">
         <h1 className="text-xl font-bold text-slate-800">Edit Profile</h1>
-        <p className="text-xs text-slate-400 mt-0.5">Update your name and contact information</p>
+        <p className="text-xs text-slate-400 mt-3">Update your name and contact information</p>
       </div>
 
       {/* Avatar card */}
