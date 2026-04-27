@@ -50,8 +50,6 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    // ✅ รองรับ trigger "update" — เมื่อ useSession().update({ name, telephone }) ถูกเรียก
-    // token จะถูกอัปเดตทันที และ session ที่ได้จาก useSession() จะมีค่าใหม่เลย
     async jwt({ token, user, trigger, session }) {
       if (trigger === "update" && session?.user) {
         // merge เฉพาะ field ที่ส่งมา
