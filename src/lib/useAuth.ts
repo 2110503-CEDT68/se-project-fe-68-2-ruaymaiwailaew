@@ -66,7 +66,6 @@ export interface UpdateProfileResult {
 
 export function useUpdateProfile() {
   const { accessToken } = useAuthUser();
-  // ✅ ดึง update() เพื่ออัปเดต JWT token ใน session โดยตรง
   const { update } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,9 +90,6 @@ export function useUpdateProfile() {
 
         console.log("📦 [updateProfile] Raw data:", JSON.stringify(data, null, 2));
 
-        // ✅ อัปเดต JWT token ใน session ทันที
-        // jwt callback (trigger="update") จะ merge name/telephone เข้า token
-        // ทุก component ที่ใช้ useSession() / useAuthUser() จะได้ค่าใหม่โดยไม่ต้อง reload
         await update({
           user: {
             name: payload.name,

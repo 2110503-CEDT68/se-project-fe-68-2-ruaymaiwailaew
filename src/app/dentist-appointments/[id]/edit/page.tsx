@@ -329,45 +329,6 @@ export default function DentistEditBookingPage() {
         </div>
       </div>
 
-      {/* Alert Dialog - Past Date Error */}
-      {/* <Dialog
-        open={dateErrorAlertOpen}
-        onClose={() => setDateErrorAlertOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogContent sx={{ pt: 3 }}>
-          <div className="flex flex-col items-center text-center">
-            <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-4">
-              <AlertCircle className="w-7 h-7 text-red-500" />
-            </div>
-            <h2
-              className="text-slate-900 mb-2"
-              style={{ fontSize: "1.125rem", fontWeight: 600 }}
-            >
-              Cannot Select an Earlier Date
-            </h2>
-            <p className="text-slate-500 text-sm leading-relaxed">
-              Please select a date and time that is the same as or later than
-              the current appointment date.
-            </p>
-          </div>
-        </DialogContent>
-        <DialogActions sx={{ p: 2, justifyContent: "center" }}>
-          <MuiButton
-            onClick={() => setDateErrorAlertOpen(false)}
-            variant="contained"
-            sx={{
-              width: "100%",
-              height: 44,
-              borderRadius: "10px",
-              fontWeight: 600,
-            }}
-          >
-            Got it
-          </MuiButton>
-        </DialogActions>
-      </Dialog> */}
     </div>
   );
 }
