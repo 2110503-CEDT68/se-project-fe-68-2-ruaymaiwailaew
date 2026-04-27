@@ -236,6 +236,7 @@ export async function updateDentist(
   });
   await handleResponse(res);
 }
+
 // ─── User Types ───────────────────────────────────────────────────────────────
 
 export interface UserPayload {
@@ -307,3 +308,5 @@ export async function unbanUser(
   });
   await handleResponse<unknown>(res);
 }
+
+

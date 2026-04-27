@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuthUser, useUpdateProfile } from "@/lib/useAuth";
 import { User, Phone, CheckCircle, Stethoscope, Clock, AlertCircle, Loader2, Eye, EyeOff, Lock } from "lucide-react";
-import { getDentistById ,updateDentist} from "@/lib/bookingApi";
-
+import { getDentistById, updateDentist } from "@/lib/bookingApi";
 // ── types ──────────────────────────────────────────────
 interface Dentist {
   _id: string;
@@ -12,9 +11,6 @@ interface Dentist {
   yearsOfExperience: number;
   areaOfExpertise: string;
 }
-
-// ── helpers ────────────────────────────────────────────
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
 
 // ── sub-components ─────────────────────────────────────
 function FieldLabel({ icon, label }: { icon: React.ReactNode; label: string }) {
@@ -74,11 +70,11 @@ function InputField({
 export default function EditProfilePage() {
   const { user, accessToken } = useAuthUser();
   const { updateProfile, isLoading, error } = useUpdateProfile();
+  const [name, setName] = useState("");
 
   const isDentist = (user as any)?.role === "dentist";
-  const userInitial = user?.name?.charAt(0).toUpperCase() ?? "?";
+  const userInitial = (name || user?.name)?.charAt(0).toUpperCase() ?? "?";
 
-  const [name, setName] = useState("");
   const [telephone, setTelephone] = useState("");
 
   const [dentist, setDentist] = useState<Dentist | null>(null);
@@ -154,7 +150,7 @@ export default function EditProfilePage() {
       {/* Page header */}
       <div className="mb-2">
         <h1 className="text-xl font-bold text-slate-800">Edit Profile</h1>
-        <p className="text-xs text-slate-400 mt-3">Update your name and contact information</p>
+        <p className="text-xs text-slate-400 mt-4">Update your name and contact information</p>
       </div>
 
       {/* Avatar card */}
@@ -162,8 +158,8 @@ export default function EditProfilePage() {
         <div className="w-16 h-16 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-2xl font-bold flex-shrink-0">
           {userInitial}
         </div>
-        <div>
-          <p className="font-semibold text-slate-800">{user?.name ?? "—"}</p>
+        <div> 
+           <p className="font-semibold text-slate-800">{ name || (user?.name ?? "—")}</p>
           <p className="text-xs text-slate-400 mt-0.5">{user?.email ?? ""}</p>
         </div>
       </div>

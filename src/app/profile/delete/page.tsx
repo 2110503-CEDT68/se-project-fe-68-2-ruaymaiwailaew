@@ -127,7 +127,7 @@ export default function DeleteAccountPage() {
           ) : (
             <Trash2 size={15} />
           )}
-          {isLoading ? "Deleting..." : "Delete My Account"};
+          {isLoading ? "Deleting..." : "Delete My Account"}
         </button>
        
       </div>
