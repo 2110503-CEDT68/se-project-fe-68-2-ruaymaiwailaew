@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuthUser, useUpdateProfile } from "@/lib/useAuth";
 import { User, Phone, CheckCircle, Stethoscope, Clock, AlertCircle, Loader2, Eye, EyeOff, Lock } from "lucide-react";
-import { getDentistById,updateDentist } from "@/lib/bookingApi";
+import { getDentistById, updateDentist } from "@/lib/bookingApi";
 // ── types ──────────────────────────────────────────────
 interface Dentist {
   _id: string;
@@ -175,11 +175,18 @@ export default function EditProfilePage() {
           {/* Name */}
           <div>
             <FieldLabel icon={<User size={13} />} label="Full Name" />
-            <InputField
-              value={name}
-              onChange={(v) => { setName(v); setSuccess(false); }}
-              placeholder="Enter your full name"
-            />
+          <InputField
+            value={name ?? ""}
+            onChange={(v) => {
+              if (!v.trim()) {
+                alert("Name cannot be empty");
+                return;
+              }
+              setName(v);
+              setSuccess(false);
+            }}
+            placeholder="Enter your full name"
+          />
           </div>
 
           <hr className="border-slate-100" />

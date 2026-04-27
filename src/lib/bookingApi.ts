@@ -202,6 +202,12 @@ export async function getDentists(token: string): Promise<Dentist[]> {
   }));
 }
 
+// เพิ่มหลัง getDentists และก่อน User Types
+
+/**
+ * GET /dentists/:id
+ * Fetch a single dentist by ID.
+ */
 export async function getDentistById(token: string, id: string): Promise<Dentist | null> {
   const res = await fetch(`${BASE_URL}/dentists/${id}`, { headers: authHeaders(token) });
   const data = await handleResponse<any>(res);

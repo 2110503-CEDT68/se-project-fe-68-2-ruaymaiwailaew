@@ -86,9 +86,17 @@ export default function EditBookingPage() {
     }
   }, [booking]);
 
+  const todayStr = new Date().toLocaleDateString("en-CA");
+
   const handleSave = async () => {
     if (!formData.date || !formData.dentistId) {
       toast.error("Please fill in all fields");
+      return;
+    }
+
+    const selectedDate = formData.date.split("T")[0];
+    if (selectedDate < todayStr) {
+      toast.error("Cannot set a booking date in the past");
       return;
     }
 
@@ -198,23 +206,22 @@ export default function EditBookingPage() {
                     <span className="text-slate-700 font-medium">
                       {booking.date
                         ? (() => {
-                            const d = new Date(booking.date);
-                            const day = String(d.getDate()).padStart(2, "0");
-                            const month = String(d.getMonth() + 1).padStart(
-                              2,
-                              "0",
-                            );
-                            const year = d.getFullYear();
-                            return `${day}/${month}/${year}`;
-                          })()
+                          const d = new Date(booking.date);
+                          const day = String(d.getDate()).padStart(2, "0");
+                          const month = String(d.getMonth() + 1).padStart(
+                            2,
+                            "0",
+                          );
+                          const year = d.getFullYear();
+                          return `${day}/${month}/${year}`;
+                        })()
                         : "-"}
                     </span>
                     <span
-                      className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                        booking.date && new Date(booking.date) >= new Date()
+                      className={`text-xs font-semibold px-3 py-1 rounded-full ${booking.date && new Date(booking.date) >= new Date()
                           ? "bg-green-50 text-green-700"
                           : "bg-slate-100 text-slate-600"
-                      }`}
+                        }`}
                     >
                       {booking.date && new Date(booking.date) >= new Date()
                         ? "Upcoming"
@@ -257,6 +264,7 @@ export default function EditBookingPage() {
                   <input
                     type="date"
                     value={formData.date ? formData.date.split("T")[0] : ""}
+                    min={todayStr}
                     onChange={(e) => {
                       const time = formData.date.split("T")[1] || "00:00";
                       setFormData({

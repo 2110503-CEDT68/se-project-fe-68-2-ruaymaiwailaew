@@ -108,7 +108,6 @@ export default function ProfileDropdown({
 
         {/* Action buttons */}
         <Box sx={{ px: 2, py: 1.5, display: "flex", flexDirection: "column", gap: 1 }}>
-          {/* Edit Profile */}
           <Button
             fullWidth
             variant="outlined"
@@ -135,7 +134,6 @@ export default function ProfileDropdown({
             Edit Profile
           </Button>
 
-          {/* Delete Account */}
           <Button
             fullWidth
             variant="outlined"

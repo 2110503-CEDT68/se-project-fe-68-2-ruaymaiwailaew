@@ -20,10 +20,6 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return data;
 }
 
-/**
- * Custom hook to get auth user info from NextAuth session
- * Returns: { user, isAuthenticated, isAdmin, status, error, accessToken }
- */
 export function useAuthUser() {
   const { data: session, status } = useSession();
 
@@ -37,28 +33,20 @@ export function useAuthUser() {
   };
 }
 
-/**
- * Custom hook to sign out user
- * Returns: signOut function that calls backend logout API
- */
 export function useSignOut() {
   const { accessToken } = useAuthUser();
 
   return useCallback(async () => {
     try {
-      // Call backend logout API if we have a token
       if (accessToken) {
         await fetch("/api/auth/logout", {
           method: "GET",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
+          headers: { Authorization: `Bearer ${accessToken}` },
         });
       }
     } catch (error) {
       console.error("Logout API error:", error);
     } finally {
-      // Always sign out from NextAuth regardless of API call result
       await nextAuthSignOut({ redirect: false });
     }
   }, [accessToken]);
@@ -76,12 +64,9 @@ export interface UpdateProfileResult {
   data?: unknown;
 }
 
-/**
- * Custom hook to update user profile
- * Returns: { updateProfile, isLoading, error, result }
- */
 export function useUpdateProfile() {
   const { accessToken } = useAuthUser();
+  const { update } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<UpdateProfileResult | null>(null);
@@ -105,6 +90,13 @@ export function useUpdateProfile() {
 
         console.log("📦 [updateProfile] Raw data:", JSON.stringify(data, null, 2));
 
+        await update({
+          user: {
+            name: payload.name,
+            telephone: payload.telephone,
+          },
+        });
+
         const successResult: UpdateProfileResult = {
           success: true,
           message: data?.message ?? "Profile updated successfully",
@@ -114,6 +106,7 @@ export function useUpdateProfile() {
         console.log("✅ [updateProfile] Success:", successResult);
 
         setResult(successResult);
+        window.location.reload();
         return successResult;
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Unexpected error occurred";
@@ -126,16 +119,12 @@ export function useUpdateProfile() {
         setIsLoading(false);
       }
     },
-    [accessToken]
+    [accessToken, update]
   );
 
   return { updateProfile, isLoading, error, result };
 }
 
-/**
- * Custom hook to delete user account
- * Returns: { deleteAccount, isLoading, error }
- */
 export function useDeleteAccount() {
   const { accessToken } = useAuthUser();
   const signOut = useSignOut();

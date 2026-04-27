@@ -14,7 +14,7 @@ import {
   Divider,
 } from "@mui/material";
 import { User, Shield, Bell, Trash2 } from "lucide-react";
-import { useAuthUser } from "@/store";
+import { useAuthUser } from "@/lib/useAuth";
 
 interface NavItem {
   label: string;

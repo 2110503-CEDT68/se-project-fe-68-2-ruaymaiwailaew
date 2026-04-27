@@ -90,16 +90,21 @@ export default function MyBooking() {
       : r.reduce((s, rv) => s + rv.rating, 0) / r.length;
   };
 
+  const isBeforeOriginal = (dateString: string): boolean => {
+    const selected = new Date(dateString);
+    const original = new Date(booking?.date || "");
+    selected.setHours(0, 0, 0, 0);
+    original.setHours(0, 0, 0, 0);
+    return selected < original;
+  };
+
   const handleSave = async () => {
     if (!editDate || !editDentistId) {
       toast.error("Please fill in all fields");
       return;
     }
-    const sel = new Date(editDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (sel < today) {
-      toast.error("Please select a future date");
+    if (isBeforeOriginal(editDate)) {
+      toast.error("Cannot select a past date");
       return;
     }
 
@@ -139,7 +144,7 @@ export default function MyBooking() {
   if (!booking) {
     return (
       <div className="min-h-screen bg-slate-50">
-        <main className="max-w-lg mx-auto px-4 py-16">
+        <main className="max-w-lg mx-auto px-4 py-16 ">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 text-center">
             <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
               <Calendar className="w-7 h-7 text-blue-400" />
@@ -169,7 +174,7 @@ export default function MyBooking() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 mt-16">
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

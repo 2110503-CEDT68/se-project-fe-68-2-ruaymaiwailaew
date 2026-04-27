@@ -16,8 +16,7 @@ import CardContent from "@mui/material/CardContent";
 import CardHeader from "@mui/material/CardHeader";
 import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
-import Box from "@mui/material/Box";
-import { ArrowLeft, Calendar, Clock } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export default function DentistEditBookingPage() {
@@ -33,7 +32,6 @@ export default function DentistEditBookingPage() {
     date: "",
   });
   const [error, setError] = useState<string | null>(null);
-
   const bookingId = params.id as string;
   const booking = allBookings.find((b) => b.id === bookingId);
 
@@ -69,9 +67,20 @@ export default function DentistEditBookingPage() {
     }
   }, [booking, session?.user?.id]);
 
+  const isBeforeOriginal = (dateTimeString: string): boolean => {
+    const selected = new Date(dateTimeString);
+    const original = new Date(booking?.date || "");
+    return selected < original;
+  };
+
   const handleSave = async () => {
     if (!formData.date) {
       toast.error("Please select a date and time");
+      return;
+    }
+
+    if (isBeforeOriginal(formData.date)) {
+      toast.error("Cannot select a past date");
       return;
     }
 
@@ -319,6 +328,7 @@ export default function DentistEditBookingPage() {
           </ul>
         </div>
       </div>
+
     </div>
   );
 }

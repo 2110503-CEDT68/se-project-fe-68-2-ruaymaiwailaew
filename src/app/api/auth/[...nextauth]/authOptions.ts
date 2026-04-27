@@ -18,12 +18,9 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          // Call backend login API
           const response = await fetch(`${API_AUTH_URL}/login`, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               email: credentials.email,
               password: credentials.password,
@@ -32,20 +29,13 @@ export const authOptions: NextAuthOptions = {
 
           const data = await response.json();
 
-          if (!response.ok) {
-            throw new Error(data.message || "Login failed");
-          }
-
-          // Handle backend response format: {success: true, data: {...}, token: "..."}
-          if (!data.success || !data.data) {
-            throw new Error(data.message || "Login failed");
-          }
+          if (!response.ok) throw new Error(data.message || "Login failed");
+          if (!data.success || !data.data) throw new Error(data.message || "Login failed");
 
           const userData = data.data;
 
-          // Return user data with token
           return {
-            id: userData._id, // Backend uses _id instead of id
+            id: userData._id,
             email: userData.email,
             name: userData.name,
             telephone: userData.telephone,
@@ -60,7 +50,13 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
+      if (trigger === "update" && session?.user) {
+        // merge เฉพาะ field ที่ส่งมา
+        if (session.user.name !== undefined) token.name = session.user.name;
+        if (session.user.telephone !== undefined) token.telephone = session.user.telephone;
+      }
+
       if (user) {
         token.id = user.id;
         token.email = user.email;
@@ -69,6 +65,7 @@ export const authOptions: NextAuthOptions = {
         token.telephone = user.telephone;
         token.accessToken = user.accessToken;
       }
+
       return token;
     },
     async session({ session, token }) {
@@ -94,7 +91,7 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
   secret:
     process.env.NEXTAUTH_SECRET
