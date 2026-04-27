@@ -16,8 +16,7 @@ import CardContent from "@mui/material/CardContent";
 import CardHeader from "@mui/material/CardHeader";
 import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
-import Box from "@mui/material/Box";
-import { ArrowLeft, Calendar, Clock } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export default function DentistEditBookingPage() {
@@ -33,7 +32,6 @@ export default function DentistEditBookingPage() {
     date: "",
   });
   const [error, setError] = useState<string | null>(null);
-
   const bookingId = params.id as string;
   const booking = allBookings.find((b) => b.id === bookingId);
 
@@ -69,9 +67,20 @@ export default function DentistEditBookingPage() {
     }
   }, [booking, session?.user?.id]);
 
+  const isBeforeOriginal = (dateTimeString: string): boolean => {
+    const selected = new Date(dateTimeString);
+    const original = new Date(booking?.date || "");
+    return selected < original;
+  };
+
   const handleSave = async () => {
     if (!formData.date) {
       toast.error("Please select a date and time");
+      return;
+    }
+
+    if (isBeforeOriginal(formData.date)) {
+      toast.error("Cannot select a past date");
       return;
     }
 
@@ -319,6 +328,46 @@ export default function DentistEditBookingPage() {
           </ul>
         </div>
       </div>
+
+      {/* Alert Dialog - Past Date Error */}
+      {/* <Dialog
+        open={dateErrorAlertOpen}
+        onClose={() => setDateErrorAlertOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogContent sx={{ pt: 3 }}>
+          <div className="flex flex-col items-center text-center">
+            <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-4">
+              <AlertCircle className="w-7 h-7 text-red-500" />
+            </div>
+            <h2
+              className="text-slate-900 mb-2"
+              style={{ fontSize: "1.125rem", fontWeight: 600 }}
+            >
+              Cannot Select an Earlier Date
+            </h2>
+            <p className="text-slate-500 text-sm leading-relaxed">
+              Please select a date and time that is the same as or later than
+              the current appointment date.
+            </p>
+          </div>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, justifyContent: "center" }}>
+          <MuiButton
+            onClick={() => setDateErrorAlertOpen(false)}
+            variant="contained"
+            sx={{
+              width: "100%",
+              height: 44,
+              borderRadius: "10px",
+              fontWeight: 600,
+            }}
+          >
+            Got it
+          </MuiButton>
+        </DialogActions>
+      </Dialog> */}
     </div>
   );
 }
