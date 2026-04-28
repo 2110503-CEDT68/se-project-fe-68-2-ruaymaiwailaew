@@ -154,15 +154,6 @@ export default function LoginPage() {
       {/* Right Panel */}
       <div className="flex-1 flex flex-col justify-center px-6 sm:px-10 lg:px-16 xl:px-20 py-12 bg-white">
         <div className="max-w-md w-full mx-auto">
-          {/* Back link
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-slate-400 hover:text-slate-600 text-sm mb-10 transition-colors group"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
-            Back to Home
-          </Link> */}
-
           {/* Heading */}
           <div className="mb-8">
             <h1

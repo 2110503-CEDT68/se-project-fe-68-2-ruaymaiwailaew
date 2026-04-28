@@ -16,10 +16,10 @@ import CardContent from "@mui/material/CardContent";
 import CardHeader from "@mui/material/CardHeader";
 import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
-import { ArrowLeft, Calendar, Clock } from "lucide-react";
+import { ArrowLeft, Calendar } from "lucide-react";
 import { toast } from "sonner";
 
-// ── UTC+7 helpers ─────────────────────────────────────────────────────────────
+// ── Date helpers ──────────────────────────────────────────────────────────────
 
 const UTC_OFFSET = 7;
 
@@ -38,39 +38,9 @@ function formatDateBKK(dateStr: string): string {
   });
 }
 
-/** แปลง ISO string → "13:52 (UTC+7)" */
-function formatTimeBKK(dateStr: string): string {
-  if (!dateStr) return "";
-  const bkk = toBangkokTime(new Date(dateStr));
-  const hh = String(bkk.getHours()).padStart(2, "0");
-  const mm = String(bkk.getMinutes()).padStart(2, "0");
-  return `${hh}:${mm} (UTC+${UTC_OFFSET})`;
-}
-
-/** แปลง ISO string → "YYYY-MM-DDTHH:mm" ใน timezone UTC+7 สำหรับ datetime-local input */
-function toDatetimeLocalBKK(dateStr: string): string {
-  if (!dateStr) return "";
-  const bkk = toBangkokTime(new Date(dateStr));
-  const yyyy = bkk.getFullYear();
-  const MM = String(bkk.getMonth() + 1).padStart(2, "0");
-  const dd = String(bkk.getDate()).padStart(2, "0");
-  const hh = String(bkk.getHours()).padStart(2, "0");
-  const mm = String(bkk.getMinutes()).padStart(2, "0");
-  return `${yyyy}-${MM}-${dd}T${hh}:${mm}`;
-}
-
-/** แปลง datetime-local value (UTC+7) กลับเป็น ISO UTC สำหรับส่ง API */
-function bangkokInputToUTC(localValue: string): string {
-  if (!localValue) return "";
-  // localValue = "YYYY-MM-DDTHH:mm" ซึ่งเป็นเวลา UTC+7
-  const asIfUTC = new Date(localValue + "Z"); // parse เป็น UTC ก่อน
-  const utcMs = asIfUTC.getTime() - UTC_OFFSET * 3_600_000; // ลบ offset
-  return new Date(utcMs).toISOString();
-}
-
-/** "now" ใน UTC+7 format สำหรับ min attribute ของ input */
-function nowDatetimeLocalBKK(): string {
-  return toDatetimeLocalBKK(new Date().toISOString());
+/** วันนี้ใน format YYYY-MM-DD สำหรับ min attribute */
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -107,58 +77,53 @@ export default function DentistEditBookingPage() {
         setError("You are not authorized to edit this appointment");
         return;
       }
-      // แสดงเวลาใน input เป็น UTC+7
-      setFormData({ date: toDatetimeLocalBKK(booking.date) });
+      // แสดงวันที่เป็น YYYY-MM-DD
+      setFormData({ date: booking.date.slice(0, 10) });
       setLoading(false);
     }
   }, [booking, session?.user?.id]);
 
-  const isBeforeOriginal = (localValue: string): boolean => {
-    const selectedUTC = new Date(bangkokInputToUTC(localValue));
-    const original = new Date(booking?.date || "");
-    return selectedUTC < original;
+  const isInThePast = (dateValue: string): boolean => {
+    return dateValue < todayISO();
   };
 
   const handleSave = async () => {
     if (!formData.date) {
-      toast.error("Please select a date and time");
+      toast.error("Please select a date");
       return;
     }
 
-    // ตรวจสอบว่าเลือกเวลาในอดีตหรือไม่ (เทียบแบบ UTC)
-    if (isBeforeOriginal(formData.date)) {
+    if (isInThePast(formData.date)) {
       toast.error("Cannot select a past date");
       return;
     }
 
     setSaving(true);
-  try {
-    const result = await dispatch(
-      updateBooking({
-        bookingId,
-        token: session?.accessToken || "",
-        date: bangkokInputToUTC(formData.date), 
-        dentistId: booking?.dentistId || "",
-      })
-    );
+    try {
+      const result = await dispatch(
+        updateBooking({
+          bookingId,
+          token: session?.accessToken || "",
+          date: formData.date, // ส่ง "YYYY-MM-DD" ตรงๆ
+          dentistId: booking?.dentistId || "",
+        })
+      );
 
-    if (updateBooking.fulfilled.match(result)) {
-      toast.success("Appointment updated successfully");
-      // รีโหลดข้อมูลเพื่อให้ Store อัปเดตล่าสุด
-      await dispatch(loadBookings(session?.accessToken || ""));
-      
-      setTimeout(() => {
-        router.push("/dentist-appointments");
-      }, 1000);
-    } else {
-      toast.error((result.payload as string) || "Update failed");
+      if (updateBooking.fulfilled.match(result)) {
+        toast.success("Appointment updated successfully");
+        await dispatch(loadBookings(session?.accessToken || ""));
+        setTimeout(() => {
+          router.push("/dentist-appointments");
+        }, 1000);
+      } else {
+        toast.error((result.payload as string) || "Update failed");
+        setSaving(false);
+      }
+    } catch (err) {
+      console.error(err);
       setSaving(false);
     }
-  } catch (err) {
-    console.error(err);
-    setSaving(false);
-  }
-};
+  };
 
   if (loading) {
     return (
@@ -216,7 +181,7 @@ export default function DentistEditBookingPage() {
         <Card sx={{ borderRadius: "16px", border: "1px solid #f1f5f9", boxShadow: "none" }}>
           <CardHeader
             title="Edit Appointment"
-            subheader="Update the appointment date and time"
+            subheader="Update the appointment date"
             sx={{
               borderBottom: "1px solid #f1f5f9",
               "& .MuiCardHeader-title": { fontSize: "1.25rem", fontWeight: 600, color: "#0f172a" },
@@ -240,37 +205,35 @@ export default function DentistEditBookingPage() {
               </div>
             </div>
 
-            {/* Current Appointment — แสดงเป็น UTC+7 */}
+            {/* Current Appointment */}
             <div className="mb-8 p-4 bg-slate-50 rounded-xl border border-slate-200">
               <h3 className="text-slate-700 mb-3 text-sm font-semibold">Current Appointment</h3>
-              <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-3">
                 <Calendar size={18} className="text-slate-400" />
                 <span className="text-slate-900 text-sm">{formatDateBKK(booking.date)}</span>
-                <Clock size={18} className="text-slate-400 ml-4" />
-                <span className="text-slate-900 text-sm">{formatTimeBKK(booking.date)}</span>
               </div>
             </div>
 
-            {/* Form — input แสดง/รับค่าเป็น UTC+7 */}
+            {/* Form */}
             <div className="space-y-6 mb-8">
               <FormControl fullWidth>
-                <label htmlFor="datetime" className="block text-sm font-medium text-slate-700 mb-2">
-                  New Date & Time <span className="text-slate-400 font-normal">(UTC+{UTC_OFFSET})</span>
+                <label htmlFor="date" className="block text-sm font-medium text-slate-700 mb-2">
+                  New Date
                 </label>
                 <TextField
-                  id="datetime"
-                  type="datetime-local"
+                  id="date"
+                  type="date"
                   value={formData.date}
                   onChange={(e) => setFormData({ date: e.target.value })}
                   fullWidth
                   variant="outlined"
                   slotProps={{
-                    htmlInput: { min: nowDatetimeLocalBKK() },
+                    htmlInput: { min: todayISO() },
                   }}
                   sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
                 />
                 <p className="text-xs text-slate-500 mt-1">
-                  Select a future date and time (Bangkok time, UTC+{UTC_OFFSET})
+                  Select a future date
                 </p>
               </FormControl>
             </div>
@@ -300,13 +263,12 @@ export default function DentistEditBookingPage() {
         <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
           <h4 className="text-sm font-medium text-amber-900 mb-2">Important Notes</h4>
           <ul className="text-sm text-amber-800 space-y-1">
-            <li>• Changes to appointment time should be notified to the patient</li>
-            <li>• Ensure the new time slot is available</li>
+            <li>• Changes to appointment date should be notified to the patient</li>
+            <li>• Ensure the new date slot is available</li>
             <li>• Cancellations must be done through the Delete option</li>
           </ul>
         </div>
       </div>
-
     </div>
   );
 }
