@@ -30,8 +30,11 @@ export default async function RootLayout({
   const session = await getServerSession(authOptions);
 
   return (
-    <html lang="en">
-      <body suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="en" suppressHydrationWarning>
+      <body
+        suppressHydrationWarning
+        className={`${geistSans.variable} ${geistMono.variable} bg-white`}
+      >
         <NextAuthProvider session={session}>
           <AppProviders>
             <NavbarWrapper />

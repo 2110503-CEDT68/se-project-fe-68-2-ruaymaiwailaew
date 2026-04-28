@@ -4,23 +4,12 @@ import React, { useState, useEffect } from "react";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { enUS } from "date-fns/locale";
-import { useSession } from "next-auth/react";
+import { useAppSelector } from "@/store";
+import { selectAllBookings } from "@/store/slices/bookingSlice";
 
-import { getBookings,type BookingPayload } from "@/lib/bookingApi"; 
+const locales = { "en-US": enUS };
+const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
 
-// ตั้งค่า Localizer สำหรับปฏิทิน
-const locales = {
-  "en-US": enUS,
-};
-const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek,
-  getDay,
-  locales,
-});
-
-// รูปแบบข้อมูล Event
 interface CalendarEvent {
   id: string;
   title: string;
@@ -29,74 +18,60 @@ interface CalendarEvent {
   color?: string;
 }
 
-// ชุดสีสำหรับสุ่มให้คุณหมอ
 const DENTIST_COLORS = [
-  "#34d399", // เขียวอ่อน
-  "#3b82f6", // น้ำเงิน
-  "#ef4444", // แดง
-  "#0ea5e9", // ฟ้า
-  "#8b5cf6", // ม่วง
-  "#a855f7", // ม่วงชมพู
-  "#f59e0b", // เหลืองส้ม
+  "#34d399",
+  "#3b82f6",
+  "#ef4444",
+  "#0ea5e9",
+  "#8b5cf6",
+  "#a855f7",
+  "#f59e0b",
 ];
 
 export default function BookingCalendar() {
-  const { data: session } = useSession();
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const bookings = useAppSelector(selectAllBookings);
 
-  // เปลี่ยนจาก initialDate → currentDate แบบ controlled
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [currentView, setCurrentView] = useState<"month" | "work_week" | "day">("work_week");
 
-  useEffect(() => {
-    const fetchAppointments = async () => {
-      if (!session?.accessToken) return;
+  // แปลง bookings จาก Redux → CalendarEvent
+  const events: CalendarEvent[] = React.useMemo(() => {
+    if (bookings.length === 0) return [];
 
-      try {
-        setLoading(true);
-        const bookings: BookingPayload[] = await getBookings(session.accessToken);
+    const colorMap = new Map<string, string>();
+    let colorIndex = 0;
 
-        if (bookings.length > 0) {
-          // ✅ set currentDate แทน initialDate — จะ re-render ปฏิทินให้กระโดดไปวันนั้นได้
-          setCurrentDate(new Date(bookings[0].date));
-        }
+    return bookings.map((booking) => {
+      const startDate = new Date(booking.date);
+      const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
 
-        const colorMap = new Map<string, string>();
-        let colorIndex = 0;
-
-        const apiEvents: CalendarEvent[] = bookings.map((booking) => {
-          const startDate = new Date(booking.date);
-          const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-
-          if (!colorMap.has(booking.dentistId)) {
-            colorMap.set(booking.dentistId, DENTIST_COLORS[colorIndex % DENTIST_COLORS.length]);
-            colorIndex++;
-          }
-
-          return {
-            id: booking.id,
-            title: booking.dentistName,
-            start: startDate,
-            end: endDate,
-            color: colorMap.get(booking.dentistId),
-          };
-        });
-
-        setEvents(apiEvents);
-      } catch (error) {
-        console.error("Error fetching appointments:", error);
-      } finally {
-        setLoading(false);
+      if (!colorMap.has(booking.dentistId)) {
+        colorMap.set(
+          booking.dentistId,
+          DENTIST_COLORS[colorIndex++ % DENTIST_COLORS.length],
+        );
       }
-    };
 
-    fetchAppointments();
-  }, [session?.accessToken]);
+      return {
+        id: booking.id,
+        title: booking.dentistName,
+        start: startDate,
+        end: endDate,
+        color: colorMap.get(booking.dentistId),
+      };
+    });
+  }, [bookings]);
+
+  // กระโดดไปวันของ booking แรกเมื่อโหลดครั้งแรก
+  useEffect(() => {
+    if (bookings.length > 0) {
+      setCurrentDate(new Date(bookings[0].date));
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const eventStyleGetter = (event: CalendarEvent) => ({
     style: {
-      backgroundColor: event.color || "#2563eb",
+      backgroundColor: event.color ?? "#2563eb",
       borderRadius: "4px",
       color: "white",
       border: "none",
@@ -107,9 +82,8 @@ export default function BookingCalendar() {
     },
   });
 
-  if (loading) {
-    return <div className="flex justify-center items-center h-64 text-slate-500">กำลังโหลดตารางเวลา...</div>;
-  }
+  // ถ้าไม่มี booking เลย → ไม่แสดงอะไร
+  if (bookings.length === 0) return null;
 
   return (
     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
@@ -117,13 +91,12 @@ export default function BookingCalendar() {
         <h2 className="text-xl font-semibold text-slate-800">Weekly Schedule</h2>
       </div>
 
-      <div style={{ height: "800px" }} className="calendar-container">
+      <div style={{ height: "800px" }} className="calendar-container  [&_.rbc-current-time-indicator]:hidden">
         <Calendar
           localizer={localizer}
           events={events}
           startAccessor="start"
           endAccessor="end"
-          // ✅ controlled mode — date + onNavigate + view + onView
           date={currentDate}
           onNavigate={(newDate) => setCurrentDate(newDate)}
           view={currentView}
@@ -137,8 +110,6 @@ export default function BookingCalendar() {
           onSelectEvent={(event) => alert(`You clicked on: ${event.title}`)}
         />
       </div>
-
-      {/* CSS เหมือนเดิม */}
     </div>
   );
 }

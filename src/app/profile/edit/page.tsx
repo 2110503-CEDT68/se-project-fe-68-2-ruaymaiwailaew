@@ -120,8 +120,10 @@ export default function EditProfilePage() {
   const handleSave = async () => {
     setSuccess(false);
     setDentistError(null);
+
     const result = await updateProfile({ name, telephone, password });
     if (!result.success) return;
+
     if (isDentist && hasDentistChanges && accessToken && (user as any)?._id) {
       try {
         await updateDentist(accessToken, (user as any)._id, {
@@ -134,6 +136,10 @@ export default function EditProfilePage() {
       }
     }
     setSuccess(true);
+    setTimeout(() => {
+      setSuccess(false); 
+      setPassword("");   
+    }, 5000);
   };
 
   const handleReset = () => {

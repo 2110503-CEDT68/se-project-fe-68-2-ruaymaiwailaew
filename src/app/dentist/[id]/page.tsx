@@ -216,7 +216,7 @@ export default function DentistDetailPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-slate-50 mt-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-20">
           <LinearProgress />
           <div className="text-center mt-4 text-slate-500">Loading dentist information...</div>
