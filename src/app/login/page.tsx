@@ -75,7 +75,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-slate-50 flex ">
       {/* Left Panel */}
       <div className="hidden lg:flex lg:w-5/12 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 flex-col justify-between p-14 relative overflow-hidden">
         <div
@@ -154,15 +154,6 @@ export default function LoginPage() {
       {/* Right Panel */}
       <div className="flex-1 flex flex-col justify-center px-6 sm:px-10 lg:px-16 xl:px-20 py-12 bg-white">
         <div className="max-w-md w-full mx-auto">
-          {/* Back link */}
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-slate-400 hover:text-slate-600 text-sm mb-10 transition-colors group"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
-            Back to Home
-          </Link>
-
           {/* Heading */}
           <div className="mb-8">
             <h1

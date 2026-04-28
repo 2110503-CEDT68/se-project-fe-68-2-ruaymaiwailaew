@@ -45,6 +45,28 @@ import { toast } from "sonner";
 type SortKey = "patientName" | "date";
 type SortDir = "asc" | "desc";
 
+// ── UTC+7 helper ──────────────────────────────────────────────────────────────
+
+const UTC_OFFSET = 7;
+
+function toBangkokTime(date: Date): Date {
+  const utcMs = date.getTime() + date.getTimezoneOffset() * 60_000;
+  return new Date(utcMs + UTC_OFFSET * 3_600_000);
+}
+
+function formatDateBKK(iso: string): string {
+  if (!iso) return "—";
+  const bkk = toBangkokTime(new Date(iso));
+  const date = bkk.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+  const hh = String(bkk.getHours()).padStart(2, "0");
+  const mm = String(bkk.getMinutes()).padStart(2, "0");
+  return `${date}, ${hh}:${mm}`;
+}
+
 // ─── Small UI helpers ─────────────────────────────────────────────────────────
 
 function StatCard({
@@ -66,10 +88,7 @@ function StatCard({
         <span className="text-slate-400 text-sm">{label}</span>
         <Icon className={`w-4 h-4 ${color}`} />
       </div>
-      <div
-        className="text-white"
-        style={{ fontSize: "1.75rem", fontWeight: 700 }}
-      >
+      <div className="text-white" style={{ fontSize: "1.75rem", fontWeight: 700 }}>
         {loading ? (
           <Skeleton variant="text" width={60} sx={{ bgcolor: "rgba(255,255,255,0.1)" }} />
         ) : (
@@ -80,24 +99,10 @@ function StatCard({
   );
 }
 
-function DentistProfileBanner({
-  dentist,
-  loading,
-}: {
-  dentist: Dentist | null;
-  loading: boolean;
-}) {
+function DentistProfileBanner({ dentist, loading }: { dentist: Dentist | null; loading: boolean }) {
   return (
     <div className="flex items-center gap-4 mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
-      <Avatar
-        sx={{
-          width: 56,
-          height: 56,
-          bgcolor: "#3b82f6",
-          fontSize: "1.4rem",
-          fontWeight: 700,
-        }}
-      >
+      <Avatar sx={{ width: 56, height: 56, bgcolor: "#3b82f6", fontSize: "1.4rem", fontWeight: 700 }}>
         {loading ? "…" : (dentist?.name?.charAt(0).toUpperCase() ?? "D")}
       </Avatar>
       <div className="flex-1">
@@ -108,10 +113,7 @@ function DentistProfileBanner({
           </>
         ) : dentist ? (
           <>
-            <h1
-              className="text-white mb-0.5"
-              style={{ fontSize: "1.2rem", fontWeight: 700 }}
-            >
+            <h1 className="text-white mb-0.5" style={{ fontSize: "1.2rem", fontWeight: 700 }}>
               Dr. {dentist.name}
             </h1>
             <div className="flex flex-wrap gap-3 text-sm">
@@ -121,18 +123,12 @@ function DentistProfileBanner({
               </span>
               <span className="flex items-center gap-1 text-emerald-300">
                 <Clock className="w-3.5 h-3.5" />
-                {dentist.yearsOfExperience} yr
-                {dentist.yearsOfExperience !== 1 ? "s" : ""} experience
+                {dentist.yearsOfExperience} yr{dentist.yearsOfExperience !== 1 ? "s" : ""} experience
               </span>
             </div>
           </>
         ) : (
-          <h1
-            className="text-white"
-            style={{ fontSize: "1.2rem", fontWeight: 700 }}
-          >
-            My Appointments
-          </h1>
+          <h1 className="text-white" style={{ fontSize: "1.2rem", fontWeight: 700 }}>My Appointments</h1>
         )}
       </div>
     </div>
@@ -148,74 +144,44 @@ export default function DentistAppointmentsPage() {
   const dispatch = useAppDispatch();
 
   const allBookings = useAppSelector(selectAllBookings);
-  const dentistBookings = allBookings.filter(
-    (b) => b.dentistId === session?.user?.id,
-  );
+  const dentistBookings = allBookings.filter((b) => b.dentistId === session?.user?.id);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [deletingBookingId, setDeletingBookingId] = useState<string | null>(null);
-
-  // Dentist profile state
   const [dentistInfo, setDentistInfo] = useState<Dentist | null>(null);
   const [dentistLoading, setDentistLoading] = useState(true);
 
-  // ── Auth guard ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!isDentist) {
-      router.push("/login");
-    }
+    if (!isDentist) router.push("/login");
   }, [isDentist, router]);
 
-  // ── Load bookings ───────────────────────────────────────────────────────────
   useEffect(() => {
     if (!session?.accessToken) return;
     dispatch(loadBookings(session.accessToken));
   }, [session?.accessToken, dispatch]);
 
-  // ── Fetch dentist profile from backend ─────────────────────────────────────
   useEffect(() => {
     if (!session?.accessToken || !session?.user?.id) return;
-
     setDentistLoading(true);
     getDentists(session.accessToken)
       .then((dentists) => {
         const me = dentists.find((d) => d._id === session.user?.id);
         setDentistInfo(me ?? null);
       })
-      .catch((err) => {
-        console.error("[dentist-appointments] failed to load dentist info:", err);
-      })
+      .catch((err) => console.error("[dentist-appointments] failed to load dentist info:", err))
       .finally(() => setDentistLoading(false));
   }, [session?.accessToken, session?.user?.id]);
 
-  // ── Helpers ─────────────────────────────────────────────────────────────────
-  const formatDate = (iso: string) =>
-    new Date(iso).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-
   const handleSort = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortKey(key);
-      setSortDir("asc");
-    }
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("asc"); }
   };
 
   const SortIcon = ({ col }: { col: SortKey }) =>
     sortKey === col ? (
-      sortDir === "asc" ? (
-        <ChevronUp className="w-3.5 h-3.5 inline ml-1" />
-      ) : (
-        <ChevronDown className="w-3.5 h-3.5 inline ml-1" />
-      )
+      sortDir === "asc" ? <ChevronUp className="w-3.5 h-3.5 inline ml-1" /> : <ChevronDown className="w-3.5 h-3.5 inline ml-1" />
     ) : (
       <ChevronUp className="w-3.5 h-3.5 inline ml-1 opacity-20" />
     );
@@ -223,36 +189,20 @@ export default function DentistAppointmentsPage() {
   const filteredBookings = dentistBookings
     .filter((b) => {
       const q = searchQuery.toLowerCase();
-      return (
-        b.userName.toLowerCase().includes(q) ||
-        b.userEmail.toLowerCase().includes(q)
-      );
+      return b.userName.toLowerCase().includes(q) || b.userEmail.toLowerCase().includes(q);
     })
     .sort((a, b) => {
-      let vA: string, vB: string;
-      if (sortKey === "patientName") {
-        vA = a.userName;
-        vB = b.userName;
-      } else {
-        vA = a.date;
-        vB = b.date;
-      }
+      const vA = sortKey === "patientName" ? a.userName : a.date;
+      const vB = sortKey === "patientName" ? b.userName : b.date;
       return sortDir === "asc" ? vA.localeCompare(vB) : vB.localeCompare(vA);
     });
 
-  const upcomingCount = dentistBookings.filter(
-    (b) => new Date(b.date) >= new Date(),
-  ).length;
+  const upcomingCount = dentistBookings.filter((b) => new Date(b.date) >= new Date()).length;
 
   const handleDeleteBooking = async () => {
     if (!deletingBookingId) return;
     try {
-      await dispatch(
-        deleteBooking({
-          bookingId: deletingBookingId,
-          token: session?.accessToken || "",
-        }),
-      );
+      await dispatch(deleteBooking({ bookingId: deletingBookingId, token: session?.accessToken || "" }));
       toast.success("Appointment deleted successfully");
       setDeletingBookingId(null);
     } catch {
@@ -260,45 +210,18 @@ export default function DentistAppointmentsPage() {
     }
   };
 
-  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-slate-50 mt-16">
-      {/* Stats / Profile Banner */}
       <div className="bg-gradient-to-r from-slate-800 to-slate-900 border-b border-slate-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-          {/* Dentist profile */}
           <DentistProfileBanner dentist={dentistInfo} loading={dentistLoading} />
-
-          {/* Stat cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <StatCard
-              label="Total Appointments"
-              value={dentistBookings.length}
-              icon={Calendar}
-              color="text-blue-400"
-            />
-            <StatCard
-              label="Upcoming"
-              value={upcomingCount}
-              icon={Calendar}
-              color="text-green-400"
-            />
-            <StatCard
-              label="Unique Patients"
-              value={new Set(dentistBookings.map((b) => b.userId)).size}
-              icon={Users}
-              color="text-purple-400"
-            />
+            <StatCard label="Total Appointments" value={dentistBookings.length} icon={Calendar} color="text-blue-400" />
+            <StatCard label="Upcoming" value={upcomingCount} icon={Calendar} color="text-green-400" />
+            <StatCard label="Unique Patients" value={new Set(dentistBookings.map((b) => b.userId)).size} icon={Users} color="text-purple-400" />
             <StatCard
               label="Experience"
-              value={
-                dentistLoading
-                  ? "—"
-                  : dentistInfo
-                  ? `${dentistInfo.yearsOfExperience} yr${dentistInfo.yearsOfExperience !== 1 ? "s" : ""}`
-                  : "—"
-              }
+              value={dentistLoading ? "—" : dentistInfo ? `${dentistInfo.yearsOfExperience} yr${dentistInfo.yearsOfExperience !== 1 ? "s" : ""}` : "—"}
               icon={Award}
               color="text-amber-400"
               loading={dentistLoading}
@@ -308,34 +231,21 @@ export default function DentistAppointmentsPage() {
       </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Specialty badge (shown when data loaded) */}
         {!dentistLoading && dentistInfo?.areaOfExpertise && (
           <div className="mb-4 flex items-center gap-2">
             <Stethoscope className="w-4 h-4 text-blue-500" />
             <span className="text-slate-600 text-sm">
-              Specialising in{" "}
-              <span className="font-semibold text-slate-800">
-                {dentistInfo.areaOfExpertise}
-              </span>
+              Specialising in <span className="font-semibold text-slate-800">{dentistInfo.areaOfExpertise}</span>
             </span>
           </div>
         )}
 
-        <Paper
-          sx={{
-            borderRadius: "16px",
-            border: "1px solid #f1f5f9",
-            overflow: "hidden",
-          }}
-        >
+        <Paper sx={{ borderRadius: "16px", border: "1px solid #f1f5f9", overflow: "hidden" }}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 border-b border-slate-100">
             <div>
-              <h2 className="text-slate-800" style={{ fontWeight: 600 }}>
-                Appointments
-              </h2>
+              <h2 className="text-slate-800" style={{ fontWeight: 600 }}>Appointments</h2>
               <p className="text-slate-400 text-sm">
-                {filteredBookings.length} result
-                {filteredBookings.length !== 1 ? "s" : ""}
+                {filteredBookings.length} result{filteredBookings.length !== 1 ? "s" : ""}
               </p>
             </div>
             <TextField
@@ -363,9 +273,7 @@ export default function DentistAppointmentsPage() {
                 {searchQuery ? "No results found" : "No appointments yet"}
               </h3>
               <p className="text-slate-400 text-sm">
-                {searchQuery
-                  ? "Try a different search term"
-                  : "Your appointments will appear here"}
+                {searchQuery ? "Try a different search term" : "Your appointments will appear here"}
               </p>
             </div>
           ) : (
@@ -374,29 +282,14 @@ export default function DentistAppointmentsPage() {
                 <TableHead>
                   <TableRow>
                     <TableCell>
-                      <button
-                        onClick={() => handleSort("patientName")}
-                        className="flex items-center hover:text-slate-800 transition-colors"
-                      >
+                      <button onClick={() => handleSort("patientName")} className="flex items-center hover:text-slate-800 transition-colors">
                         Patient <SortIcon col="patientName" />
                       </button>
                     </TableCell>
-                    <TableCell
-                      sx={{ display: { xs: "none", sm: "table-cell" } }}
-                    >
-                      Email
-                    </TableCell>
-                    {/* Dentist column populated from backend */}
-                    <TableCell
-                      sx={{ display: { xs: "none", md: "table-cell" } }}
-                    >
-                      Dentist
-                    </TableCell>
+                    <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>Email</TableCell>
+                    <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>Dentist</TableCell>
                     <TableCell>
-                      <button
-                        onClick={() => handleSort("date")}
-                        className="flex items-center hover:text-slate-800 transition-colors"
-                      >
+                      <button onClick={() => handleSort("date")} className="flex items-center hover:text-slate-800 transition-colors">
                         Date <SortIcon col="date" />
                       </button>
                     </TableCell>
@@ -409,48 +302,20 @@ export default function DentistAppointmentsPage() {
                     const isUpcoming = new Date(booking.date) >= new Date();
                     return (
                       <TableRow key={booking.id} hover>
-                        {/* Patient */}
                         <TableCell>
                           <div className="flex items-center gap-2.5">
-                            <Avatar
-                              sx={{
-                                width: 32,
-                                height: 32,
-                                bgcolor: "#dbeafe",
-                                color: "#2563eb",
-                                fontSize: "0.75rem",
-                                fontWeight: 700,
-                              }}
-                            >
+                            <Avatar sx={{ width: 32, height: 32, bgcolor: "#dbeafe", color: "#2563eb", fontSize: "0.75rem", fontWeight: 700 }}>
                               {booking.userName.charAt(0).toUpperCase()}
                             </Avatar>
-                            <span
-                              className="text-slate-700 text-sm"
-                              style={{ fontWeight: 500 }}
-                            >
-                              {booking.userName}
-                            </span>
+                            <span className="text-slate-700 text-sm" style={{ fontWeight: 500 }}>{booking.userName}</span>
                           </div>
                         </TableCell>
-
-                        {/* Email */}
-                        <TableCell
-                          sx={{ display: { xs: "none", sm: "table-cell" } }}
-                        >
-                          <span className="text-slate-500 text-sm">
-                            {booking.userEmail}
-                          </span>
+                        <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
+                          <span className="text-slate-500 text-sm">{booking.userEmail}</span>
                         </TableCell>
-
-                        {/* Dentist – real data from database */}
-                        <TableCell
-                          sx={{ display: { xs: "none", md: "table-cell" } }}
-                        >
+                        <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>
                           <div className="flex flex-col gap-0.5">
-                            <span
-                              className="text-slate-700 text-sm"
-                              style={{ fontWeight: 500 }}
-                            >
+                            <span className="text-slate-700 text-sm" style={{ fontWeight: 500 }}>
                               {dentistLoading ? (
                                 <Skeleton variant="text" width={100} />
                               ) : (
@@ -458,21 +323,16 @@ export default function DentistAppointmentsPage() {
                               )}
                             </span>
                             {!dentistLoading && dentistInfo?.areaOfExpertise && (
-                              <span className="text-xs text-blue-500">
-                                {dentistInfo.areaOfExpertise}
-                              </span>
+                              <span className="text-xs text-blue-500">{dentistInfo.areaOfExpertise}</span>
                             )}
                           </div>
                         </TableCell>
 
-                        {/* Date */}
+                        {/* Date — UTC+7 */}
                         <TableCell>
-                          <span className="text-slate-700 text-sm">
-                            {formatDate(booking.date)}
-                          </span>
+                          <span className="text-slate-700 text-sm">{formatDateBKK(booking.date)}</span>
                         </TableCell>
 
-                        {/* Status */}
                         <TableCell>
                           <Chip
                             label={isUpcoming ? "Upcoming" : "Past"}
@@ -480,34 +340,19 @@ export default function DentistAppointmentsPage() {
                             sx={{
                               bgcolor: isUpcoming ? "#f0fdf4" : "#f8fafc",
                               color: isUpcoming ? "#15803d" : "#94a3b8",
-                              border: `1px solid ${
-                                isUpcoming ? "#bbf7d0" : "#e2e8f0"
-                              }`,
+                              border: `1px solid ${isUpcoming ? "#bbf7d0" : "#e2e8f0"}`,
                               fontSize: "0.7rem",
                               fontWeight: 500,
                             }}
                           />
                         </TableCell>
-
-                        {/* Actions */}
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <Tooltip title="Edit appointment">
                               <IconButton
                                 size="small"
-                                onClick={() =>
-                                  router.push(
-                                    `/dentist-appointments/${booking.id}/edit`,
-                                  )
-                                }
-                                sx={{
-                                  color: "#94a3b8",
-                                  "&:hover": {
-                                    color: "#2563eb",
-                                    bgcolor: "#eff6ff",
-                                  },
-                                  borderRadius: "8px",
-                                }}
+                                onClick={() => router.push(`/dentist-appointments/${booking.id}/edit`)}
+                                sx={{ color: "#94a3b8", "&:hover": { color: "#2563eb", bgcolor: "#eff6ff" }, borderRadius: "8px" }}
                               >
                                 <Edit size={15} />
                               </IconButton>
@@ -515,17 +360,8 @@ export default function DentistAppointmentsPage() {
                             <Tooltip title="Delete appointment">
                               <IconButton
                                 size="small"
-                                onClick={() =>
-                                  setDeletingBookingId(booking.id)
-                                }
-                                sx={{
-                                  color: "#94a3b8",
-                                  "&:hover": {
-                                    color: "#dc2626",
-                                    bgcolor: "#fff1f2",
-                                  },
-                                  borderRadius: "8px",
-                                }}
+                                onClick={() => setDeletingBookingId(booking.id)}
+                                sx={{ color: "#94a3b8", "&:hover": { color: "#dc2626", bgcolor: "#fff1f2" }, borderRadius: "8px" }}
                               >
                                 <Trash2 size={15} />
                               </IconButton>
@@ -542,16 +378,8 @@ export default function DentistAppointmentsPage() {
         </Paper>
       </main>
 
-      {/* Delete Appointment Dialog */}
-      <Dialog
-        open={!!deletingBookingId}
-        onClose={() => setDeletingBookingId(null)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle sx={{ fontWeight: 600, fontSize: "1.1rem" }}>
-          Delete Appointment?
-        </DialogTitle>
+      <Dialog open={!!deletingBookingId} onClose={() => setDeletingBookingId(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 600, fontSize: "1.1rem" }}>Delete Appointment?</DialogTitle>
         <DialogContent>
           <p className="text-slate-500 text-sm mt-2">
             This will permanently delete the appointment with{" "}
@@ -565,27 +393,14 @@ export default function DentistAppointmentsPage() {
           <MuiButton
             onClick={() => setDeletingBookingId(null)}
             variant="outlined"
-            sx={{
-              borderRadius: "10px",
-              borderColor: "#e2e8f0",
-              color: "#374151",
-              textTransform: "none",
-              fontWeight: 500,
-            }}
+            sx={{ borderRadius: "10px", borderColor: "#e2e8f0", color: "#374151", textTransform: "none", fontWeight: 500 }}
           >
             Cancel
           </MuiButton>
           <MuiButton
             onClick={handleDeleteBooking}
             variant="contained"
-            sx={{
-              borderRadius: "10px",
-              bgcolor: "#dc2626",
-              color: "white",
-              textTransform: "none",
-              fontWeight: 500,
-              "&:hover": { bgcolor: "#b91c1c" },
-            }}
+            sx={{ borderRadius: "10px", bgcolor: "#dc2626", color: "white", textTransform: "none", fontWeight: 500, "&:hover": { bgcolor: "#b91c1c" } }}
           >
             Delete
           </MuiButton>

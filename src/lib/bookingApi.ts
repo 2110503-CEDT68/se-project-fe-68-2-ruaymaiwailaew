@@ -94,15 +94,15 @@ function toISODate(dateValue: any): string {
 
 export function normalizeBooking(b: any): BookingPayload {
   return {
+    ...b,                                              // ✅ spread ก่อน
     id: String(b._id ?? b.id ?? ""),
     userId: normalizeUserId(b.user),
     userName: b.user?.name ?? b.userName ?? "",
     userEmail: b.user?.email ?? b.userEmail ?? "",
     dentistId: normalizeDentistId(b.dentist),
     dentistName: b.dentist?.name ?? b.dentistName ?? "",
-    date: toISODate(b.bookingDate ?? b.date ?? ""),
+    date: toISODate(b.bookingDate ?? b.date ?? ""),    // ✅ override ทีหลัง
     createdAt: b.createdAt ?? "",
-    ...b,
   };
 }
 
@@ -153,11 +153,14 @@ export async function updateBooking(
   bookingId: string,
   payload: { dentistId: string; date: string }
 ): Promise<BookingPayload> {
+  // ตัด milliseconds ออก "2026-05-01T10:00:00.000Z" → "2026-05-01T10:00:00Z"
+  const dateNoMs = payload.date.replace(/\.\d{3}Z$/, "Z");
+
   const res = await fetch(`/api/bookings/${bookingId}`, {
     method: "PUT",
     headers: authHeaders(token),
     body: JSON.stringify({
-      bookingDate: payload.date,
+      bookingDate: dateNoMs,
       dentist: payload.dentistId,
     }),
   });

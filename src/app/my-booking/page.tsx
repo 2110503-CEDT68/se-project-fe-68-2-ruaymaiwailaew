@@ -174,7 +174,7 @@ export default function MyBooking() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 mt-16">
+    <div className="min-h-screen bg-slate-50 mt-3">
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

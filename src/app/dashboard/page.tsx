@@ -1,90 +1,105 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import MuiButton from "@mui/material/Button";
-import TextField from "@mui/material/TextField";
-import Chip from "@mui/material/Chip";
-import Rating from "@mui/material/Rating";
-import InputAdornment from "@mui/material/InputAdornment";
 import {
-  Calendar as CalendarIcon, // เปลี่ยนชื่อเพื่อไม่ให้ซ้ำกับตัวแปรอื่นถ้ามี
+  Calendar as CalendarIcon,
   Award,
   Search,
   ChevronRight,
   MessageSquare,
+  Star,
+  Clock,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { selectAllReviews, loadReviews } from "@/store/slices/reviewSlice";
+import { loadBookings, selectAllBookings } from "@/store/slices/bookingSlice";
 import { fetchDentists, type Dentist } from "@/data/dentists";
-
-// TODO: แก้ไข Path ให้ตรงกับที่เก็บไฟล์ BookingCalendar.tsx ของคุณ
 import BookingCalendar from "@/components/BookingCalendar";
 
-const expertiseColors: Record<
-  string,
-  { bg: string; text: string; border: string }
-> = {
-  "Orthodontics & Cosmetic Dentistry": {
-    bg: "#f5f3ff",
-    text: "#7c3aed",
-    border: "#ddd6fe",
-  },
-  "Oral Surgery & Implants": {
-    bg: "#fff1f2",
-    text: "#be123c",
-    border: "#fecdd3",
-  },
-  "Pediatric Dentistry": { bg: "#f0fdf4", text: "#15803d", border: "#bbf7d0" },
-  "Periodontics & Endodontics": {
-    bg: "#fffbeb",
-    text: "#b45309",
-    border: "#fde68a",
-  },
-  "General Dentistry & Teeth Whitening": {
-    bg: "#f0f9ff",
-    text: "#0369a1",
-    border: "#bae6fd",
-  },
-  "Prosthodontics & Dental Restoration": {
-    bg: "#eef2ff",
-    text: "#4338ca",
-    border: "#c7d2fe",
-  },
+const UTC_OFFSET = 7;
+
+function useCurrentTime() {
+  const [time, setTime] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return time;
+}
+
+function toBangkokTime(date: Date) {
+  const utcMs = date.getTime() + date.getTimezoneOffset() * 60_000;
+  return new Date(utcMs + UTC_OFFSET * 3_600_000);
+}
+
+function formatTime(date: Date) {
+  return toBangkokTime(date).toLocaleTimeString("th-TH", {
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+  });
+}
+
+function formatDate(date: Date) {
+  return toBangkokTime(date).toLocaleDateString("en-GB", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+  });
+}
+
+const expertiseStyle: Record<string, { badge: string; dot: string }> = {
+  "Orthodontics & Cosmetic Dentistry": { badge: "bg-violet-50 text-violet-700 border border-violet-200", dot: "bg-violet-400" },
+  "Oral Surgery & Implants": { badge: "bg-rose-50 text-rose-700 border border-rose-200", dot: "bg-rose-400" },
+  "Pediatric Dentistry": { badge: "bg-emerald-50 text-emerald-700 border border-emerald-200", dot: "bg-emerald-400" },
+  "Periodontics & Endodontics": { badge: "bg-amber-50 text-amber-700 border border-amber-200", dot: "bg-amber-400" },
+  "General Dentistry & Teeth Whitening": { badge: "bg-sky-50 text-sky-700 border border-sky-200", dot: "bg-sky-400" },
+  "Prosthodontics & Dental Restoration": { badge: "bg-indigo-50 text-indigo-700 border border-indigo-200", dot: "bg-indigo-400" },
 };
+const fallbackStyle = { badge: "bg-blue-50 text-blue-700 border border-blue-200", dot: "bg-blue-400" };
+
+function StarRating({ value, max = 5 }: { value: number; max?: number }) {
+  return (
+    <span className="flex items-center gap-0.5">
+      {Array.from({ length: max }).map((_, i) => (
+        <Star key={i} size={13} className={
+          value >= i + 1 ? "fill-amber-400 text-amber-400"
+          : value >= i + 0.5 ? "fill-amber-200 text-amber-400"
+          : "fill-slate-100 text-slate-300"
+        } />
+      ))}
+    </span>
+  );
+}
 
 export default function DashboardPage() {
   const { data: session } = useSession();
   const user = session?.user;
   const router = useRouter();
+  const now = useCurrentTime();
+  const dispatch = useAppDispatch();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedExpertise, setSelectedExpertise] = useState("All");
-
   const allReviews = useAppSelector(selectAllReviews);
+  const allBookings = useAppSelector(selectAllBookings);
   const [dentistsList, setDentistsList] = useState<Dentist[]>([]);
   const [loadingDentists, setLoadingDentists] = useState(true);
 
-  const dispatch = useAppDispatch();
-
   useEffect(() => {
     if (!session?.accessToken) return;
+
+    // โหลด bookings เข้า Redux store — BookingCalendar จะอ่านจาก store โดยตรง
+    dispatch(loadBookings(session.accessToken));
 
     const loadDentists = async () => {
       try {
         const data = await fetchDentists();
         setDentistsList(data);
-
-        if (session?.accessToken) {
-          await Promise.all(
-            data.map((d) =>
-              dispatch(
-                loadReviews({ dentistId: d._id, token: session.accessToken! }),
-              ),
-            ),
-          );
-        }
-      } catch (error) {
-        console.error("Failed to load dentists:", error);
+        await Promise.all(
+          data.map((d) =>
+            dispatch(loadReviews({ dentistId: d._id, token: session.accessToken! })),
+          ),
+        );
+      } catch (err) {
+        console.error("Failed to load dentists:", err);
       } finally {
         setLoadingDentists(false);
       }
@@ -92,214 +107,159 @@ export default function DashboardPage() {
     loadDentists();
   }, [session?.accessToken, dispatch]);
 
-  const getAvgRating = (dentistId: string) => {
-    const r = allReviews.filter((rv) => rv.dentistId === dentistId);
-    return r.length === 0
-      ? 0
-      : r.reduce((s, rv) => s + rv.rating, 0) / r.length;
+  const getAvgRating = (id: string) => {
+    const r = allReviews.filter((rv) => rv.dentistId === id);
+    return r.length === 0 ? 0 : r.reduce((s, rv) => s + rv.rating, 0) / r.length;
   };
-  const getReviewCount = (dentistId: string) =>
-    allReviews.filter((rv) => rv.dentistId === dentistId).length;
+  const getReviewCount = (id: string) => allReviews.filter((rv) => rv.dentistId === id).length;
 
   const safeDentists = Array.isArray(dentistsList) ? dentistsList : [];
 
   const expertiseFilters = [
     "All",
-    ...Array.from(
-      new Set(
-        safeDentists.map((d) => {
-          const expertise =
-            typeof d.areaOfExpertise === "string" && d.areaOfExpertise.trim()
-              ? d.areaOfExpertise
-              : "General Dentistry";
-          return expertise.split(" & ")[0];
-        }),
-      ),
-    ),
+    ...Array.from(new Set(safeDentists.map((d) => {
+      const e = typeof d.areaOfExpertise === "string" && d.areaOfExpertise.trim() ? d.areaOfExpertise : "General Dentistry";
+      return e.split(" & ")[0];
+    }))),
   ];
 
   const filteredDentists = safeDentists.filter((d) => {
     const q = searchQuery.toLowerCase();
     const name = typeof d.name === "string" ? d.name : "";
-    const expertise =
-      typeof d.areaOfExpertise === "string" ? d.areaOfExpertise : "";
-    const matchSearch =
-      name.toLowerCase().includes(q) || expertise.toLowerCase().includes(q);
-    const matchFilter =
-      selectedExpertise === "All" ||
-      expertise.includes(selectedExpertise);
-    return matchSearch && matchFilter;
+    const expertise = typeof d.areaOfExpertise === "string" ? d.areaOfExpertise : "";
+    return (
+      (name.toLowerCase().includes(q) || expertise.toLowerCase().includes(q)) &&
+      (selectedExpertise === "All" || expertise.includes(selectedExpertise))
+    );
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 mt-10">
-      {/* Hero Banner */}
+    <div className="min-h-screen bg-slate-50 mt-16">
       <div className="bg-gradient-to-r from-blue-600 to-blue-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
               <p className="text-blue-200 text-sm mb-1">Good day,</p>
-              <h1
-                className="text-white mb-2"
-                style={{ fontSize: "1.75rem", fontWeight: 700 }}
-              >
-                {user?.name} 👋
-              </h1>
-              <p className="text-blue-100 text-sm">
-                Browse our expert dentists and book your appointment today.
-              </p>
+              <h1 className="text-white text-2xl font-bold mb-2">{user?.name} 👋</h1>
+              <p className="text-blue-100 text-sm">Browse our expert dentists and book your appointment today.</p>
             </div>
-            <MuiButton
-              variant="contained"
-              onClick={() => router.push("/create-booking")}
-              startIcon={<CalendarIcon size={16} />}
-              sx={{
-                bgcolor: "white",
-                color: "#2563eb",
-                "&:hover": { bgcolor: "#eff6ff" },
-                boxShadow: "0 4px 14px rgba(0,0,0,0.15)",
-                fontWeight: 700,
-                alignSelf: { xs: "flex-start", md: "center" },
-              }}
-            >
-              Book Appointment
-            </MuiButton>
+            <div className="flex flex-col items-start md:items-end gap-3">
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-2">
+                <Clock size={15} className="text-blue-200" />
+                <div className="text-right">
+                  <p className="text-white font-mono text-base font-semibold leading-none">{formatTime(now)}</p>
+                  <p className="text-blue-200 text-xs mt-0.5">
+                    {formatDate(now)}&nbsp;<span className="font-semibold text-white">UTC+{UTC_OFFSET}</span>
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => router.push("/create-booking")}
+                className="flex items-center gap-2 bg-white text-blue-600 font-bold text-sm px-4 py-2 rounded-lg shadow-md hover:bg-blue-50 transition-colors"
+              >
+                <CalendarIcon size={16} />
+                Book Appointment
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* ซ่อน wrapper ทั้งหมดเมื่อไม่มี booking เหลือ */}
+        {allBookings.length > 0 && (
+          <div className="mb-12">
+            <BookingCalendar />
+          </div>
+        )}
 
-        {/* --- เพิ่ม Calendar Component ตรงนี้ --- */}
-        <div className="mb-12">
-          <BookingCalendar />
-        </div>
-        {/* ------------------------------------- */}
-
-        {/* Section Header + Search */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h2
-              className="text-slate-800"
-              style={{ fontSize: "1.25rem", fontWeight: 600 }}
-            >
-              Our Dentists
-            </h2>
+            <h2 className="text-slate-800 text-xl font-semibold">Our Dentists</h2>
             <p className="text-slate-400 text-sm">
-              {filteredDentists.length} specialist
-              {filteredDentists.length !== 1 ? "s" : ""} available
+              {filteredDentists.length} specialist{filteredDentists.length !== 1 ? "s" : ""} available
             </p>
           </div>
-          <TextField
-            placeholder="Search dentists or specialties..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            size="small"
-            sx={{ width: { xs: "100%", sm: 280 } }}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search size={15} color="#94a3b8" />
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
+          <div className="relative w-full sm:w-72">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search dentists or specialties..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-200 bg-white text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400 transition"
+            />
+          </div>
         </div>
 
-        {/* Filter Chips */}
         <div className="flex flex-wrap gap-2 mb-6">
           {expertiseFilters.map((filter) => (
-            <Chip
+            <button
               key={filter}
-              label={filter}
               onClick={() => setSelectedExpertise(filter)}
-              variant={selectedExpertise === filter ? "filled" : "outlined"}
-              color={selectedExpertise === filter ? "primary" : "default"}
-              sx={{
-                fontWeight: selectedExpertise === filter ? 600 : 400,
-                borderColor: "#e2e8f0",
-                "&:hover": { borderColor: "#93c5fd" },
-              }}
-            />
+              className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${
+                selectedExpertise === filter
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:text-blue-600"
+              }`}
+            >
+              {filter}
+            </button>
           ))}
         </div>
 
-        {/* Dentist Grid */}
-        {filteredDentists.length > 0 ? (
+        {loadingDentists ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 animate-pulse">
+                <div className="h-5 bg-slate-100 rounded w-3/4 mb-3" />
+                <div className="h-4 bg-slate-100 rounded w-1/2 mb-6" />
+                <div className="flex gap-2">
+                  <div className="flex-1 h-9 bg-slate-100 rounded-lg" />
+                  <div className="flex-1 h-9 bg-slate-100 rounded-lg" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filteredDentists.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredDentists.map((dentist) => {
-              const colors = expertiseColors[dentist.areaOfExpertise] ?? {
-                bg: "#eff6ff",
-                text: "#2563eb",
-                border: "#bfdbfe",
-              };
+              const style = expertiseStyle[dentist.areaOfExpertise] ?? fallbackStyle;
               const avg = getAvgRating(dentist._id);
               const count = getReviewCount(dentist._id);
-
               return (
-                <div
-                  key={dentist._id}
-                  className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden group"
-                >
-                  {/* Info */}
+                <div key={dentist._id} className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden">
+                  <div className="px-5 pt-4 pb-0">
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${style.badge}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
+                      {dentist.areaOfExpertise || "General Dentistry"}
+                    </span>
+                  </div>
                   <div className="p-5">
-                    <h3
-                      className="text-slate-800 mb-1"
-                      style={{ fontWeight: 600 }}
-                    >
-                      {dentist.name}
-                    </h3>
+                    <h3 className="text-slate-800 font-semibold mb-1">{dentist.name}</h3>
                     <div className="flex items-center gap-3 text-sm text-slate-500 mb-4">
                       <span className="flex items-center gap-1">
                         <Award className="w-3.5 h-3.5 text-amber-500" />
                         {dentist.yearsOfExperience} yrs exp
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <Rating
-                          value={avg}
-                          precision={0.5}
-                          readOnly
-                          size="small"
-                          sx={{ fontSize: "0.95rem" }}
-                        />
-                        <span className="text-xs text-slate-400">
-                          ({count})
-                        </span>
+                        <StarRating value={avg} />
+                        <span className="text-xs text-slate-400">({count})</span>
                       </span>
                     </div>
-
                     <div className="flex gap-2">
-                      <MuiButton
-                        variant="outlined"
-                        size="small"
-                        startIcon={<MessageSquare size={14} />}
+                      <button
                         onClick={() => router.push(`/dentist/${dentist._id}`)}
-                        sx={{
-                          flex: 1,
-                          borderColor: "#e2e8f0",
-                          color: "#475569",
-                          borderRadius: "8px",
-                          "&:hover": {
-                            borderColor: "#93c5fd",
-                            color: "#2563eb",
-                            bgcolor: "#eff6ff",
-                          },
-                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 text-sm font-medium text-slate-500 border border-slate-200 rounded-lg py-2 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                       >
-                        Reviews
-                      </MuiButton>
-                      <MuiButton
-                        variant="contained"
-                        size="small"
-                        endIcon={<ChevronRight size={14} />}
+                        <MessageSquare size={14} /> Reviews
+                      </button>
+                      <button
                         onClick={() => router.push("/create-booking")}
-                        sx={{ flex: 1, borderRadius: "8px", fontWeight: 600 }}
+                        className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-blue-600 rounded-lg py-2 hover:bg-blue-700 transition-colors"
                       >
-                        Book
-                      </MuiButton>
+                        Book <ChevronRight size={14} />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -311,17 +271,10 @@ export default function DashboardPage() {
             <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Search className="w-7 h-7 text-slate-300" />
             </div>
-            <h3 className="text-slate-700 mb-1" style={{ fontWeight: 600 }}>
-              No dentists found
-            </h3>
-            <p className="text-slate-400 text-sm">
-              Try adjusting your search or filter
-            </p>
+            <h3 className="text-slate-700 font-semibold mb-1">No dentists found</h3>
+            <p className="text-slate-400 text-sm">Try adjusting your search or filter</p>
             <button
-              onClick={() => {
-                setSearchQuery("");
-                setSelectedExpertise("All");
-              }}
+              onClick={() => { setSearchQuery(""); setSelectedExpertise("All"); }}
               className="mt-4 text-blue-600 text-sm hover:underline"
             >
               Clear filters
