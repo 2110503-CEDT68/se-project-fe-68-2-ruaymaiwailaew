@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
 export interface SessionUser {
   id: string;
@@ -20,11 +20,16 @@ const initialState: AuthState = {
   error: null,
 };
 
+const encodeStorage = (data: any) => btoa(encodeURIComponent(JSON.stringify(data)));
+const decodeStorage = (encodedStr: string) => JSON.parse(decodeURIComponent(atob(encodedStr)));
+
+const mockHash = (str: string) => btoa(`salt_${str}_secret`);
+
 // ── Thunks (mirrors NextAuth signIn / signOut) ────────────────────────────────
 
 export const initAuth = createAsyncThunk('auth/init', async () => {
   const stored = localStorage.getItem('currentUser');
-  if (stored) return JSON.parse(stored) as SessionUser;
+  if (stored) return decodeStorage(stored) as SessionUser;
   return null;
 });
 
@@ -43,13 +48,15 @@ export const signInCredentials = createAsyncThunk(
         telephone: '',
         role: 'admin',
       };
-      localStorage.setItem('currentUser', JSON.stringify(admin));
+      localStorage.setItem('currentUser', encodeStorage(admin));
       return admin;
     }
 
-    const users: any[] = JSON.parse(localStorage.getItem('users') || '[]');
+    const storedUsers = localStorage.getItem('users');
+    const users: any[] = storedUsers ? decodeStorage(storedUsers) : [];
+    
     const found = users.find(
-      (u) => u.email === email && u.password === password
+      (u) => u.email === email && u.password === mockHash(password)
     );
     if (!found) return rejectWithValue('Invalid email or password');
 
@@ -60,7 +67,8 @@ export const signInCredentials = createAsyncThunk(
       telephone: found.telephone,
       role: found.role,
     };
-    localStorage.setItem('currentUser', JSON.stringify(user));
+    
+    localStorage.setItem('currentUser', encodeStorage(user));
     return user;
   }
 );
@@ -76,20 +84,24 @@ export const registerUser = createAsyncThunk(
     }: { name: string; telephone: string; email: string; password: string },
     { rejectWithValue }
   ) => {
-    const users: any[] = JSON.parse(localStorage.getItem('users') || '[]');
+    const storedUsers = localStorage.getItem('users');
+    const users: any[] = storedUsers ? decodeStorage(storedUsers) : [];
+    
     if (users.some((u) => u.email === email)) {
       return rejectWithValue('Email already registered');
     }
+    
     const newUser = {
       id: Date.now().toString(),
       name,
       telephone,
       email,
-      password,
+      password: mockHash(password), 
       role: 'user' as const,
     };
+    
     users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
+    localStorage.setItem('users', encodeStorage(users));
     return true;
   }
 );
