@@ -153,14 +153,14 @@ export async function updateBooking(
   bookingId: string,
   payload: { dentistId: string; date: string }
 ): Promise<BookingPayload> {
-  // Backend ต้องการแค่ YYYY-MM-DD
-  const dateOnly = payload.date.slice(0, 10);
+  // ตัด milliseconds ออก "2026-05-01T10:00:00.000Z" → "2026-05-01T10:00:00Z"
+  const dateNoMs = payload.date.replace(/\.\d{3}Z$/, "Z");
 
   const res = await fetch(`/api/bookings/${bookingId}`, {
     method: "PUT",
     headers: authHeaders(token),
     body: JSON.stringify({
-      bookingDate: dateOnly,      
+      bookingDate: dateNoMs,
       dentist: payload.dentistId,
     }),
   });
