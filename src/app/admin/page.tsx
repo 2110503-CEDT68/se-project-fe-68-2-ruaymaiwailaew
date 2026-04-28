@@ -1,50 +1,48 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import MuiButton from "@mui/material/Button";
-import Tabs from "@mui/material/Tabs";
-import Tab from "@mui/material/Tab";
-import TextField from "@mui/material/TextField";
-import InputAdornment from "@mui/material/InputAdornment";
+import { fetchDentists, type Dentist } from "@/data/dentists";
+import { banUser, getUsers, unbanUser, type UserPayload } from "@/lib/bookingApi";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { deleteBooking, loadBookings, selectAllBookings } from "@/store/slices/bookingSlice";
+import { deleteReview, loadReviews, selectAllReviews } from "@/store/slices/reviewSlice";
 import Avatar from "@mui/material/Avatar";
+import MuiButton from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
+import CircularProgress from "@mui/material/CircularProgress";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
+import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
+import Paper from "@mui/material/Paper";
 import Rating from "@mui/material/Rating";
+import Tab from "@mui/material/Tab";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import Paper from "@mui/material/Paper";
-import IconButton from "@mui/material/IconButton";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
-import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
-import DialogActions from "@mui/material/DialogActions";
+import Tabs from "@mui/material/Tabs";
+import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
-import CircularProgress from "@mui/material/CircularProgress";
 import {
-  Edit,
-  Trash2,
   Calendar,
-  Users,
-  Search,
-  LayoutDashboard,
-  ChevronUp,
   ChevronDown,
-  Star,
+  ChevronUp,
+  Edit,
+  LayoutDashboard,
   MessageSquare,
+  Search,
+  Star,
+  Trash2,
   UserPlus,
-  ShieldOff,
-  ShieldCheck,
+  Users
 } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useAppDispatch, useAppSelector } from "@/store";
-import { deleteBooking, loadBookings, selectAllBookings } from "@/store/slices/bookingSlice";
-import { deleteReview, loadReviews, selectAllReviews } from "@/store/slices/reviewSlice";
-import { fetchDentists, type Dentist } from "@/data/dentists";
-import { getUsers, banUser, unbanUser, type UserPayload } from "@/lib/bookingApi";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 type SortKey = "userName" | "date" | "dentistName";

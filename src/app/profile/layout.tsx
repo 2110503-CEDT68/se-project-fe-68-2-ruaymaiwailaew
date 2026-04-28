@@ -1,20 +1,20 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
-import { ReactNode } from "react";
+import { useAuthUser } from "@/lib/useAuth";
 import {
+  Avatar,
   Box,
+  Divider,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
   Typography,
-  Avatar,
-  Divider,
 } from "@mui/material";
-import { User, Shield, Bell, Trash2 } from "lucide-react";
-import { useAuthUser } from "@/lib/useAuth";
+import { Trash2, User } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { ReactNode } from "react";
 
 interface NavItem {
   label: string;

@@ -1,27 +1,26 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { fetchDentists, type Dentist } from "@/data/dentists";
 import { useAppDispatch, useAppSelector } from "@/store";
 import {
   loadBookings,
   selectAllBookings,
   updateBooking,
 } from "@/store/slices/bookingSlice";
-import { fetchDentists, type Dentist } from "@/data/dentists";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
 import MuiButton from "@mui/material/Button";
-import TextField from "@mui/material/TextField";
-import Select from "@mui/material/Select";
-import MenuItem from "@mui/material/MenuItem";
-import FormControl from "@mui/material/FormControl";
-import InputLabel from "@mui/material/InputLabel";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import CardHeader from "@mui/material/CardHeader";
-import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
-import Box from "@mui/material/Box";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
 import { ArrowLeft } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function EditBookingPage() {

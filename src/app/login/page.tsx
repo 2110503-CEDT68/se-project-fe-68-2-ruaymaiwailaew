@@ -1,15 +1,15 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useAuthUser } from "@/lib/useAuth";
+import MuiButton from "@mui/material/Button";
+import Divider from "@mui/material/Divider";
+import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
+import TextField from "@mui/material/TextField";
+import { Eye, EyeOff, Loader2, Shield } from "lucide-react";
+import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
-import { useAuthUser } from "@/lib/useAuth";
-import TextField from "@mui/material/TextField";
-import MuiButton from "@mui/material/Button";
-import InputAdornment from "@mui/material/InputAdornment";
-import IconButton from "@mui/material/IconButton";
-import Divider from "@mui/material/Divider";
-import { Eye, EyeOff, ArrowLeft, Shield, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function LoginPage() {
