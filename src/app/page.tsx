@@ -1,21 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useAuthUser } from "@/lib/useAuth";
 import MuiButton from "@mui/material/Button";
-import Rating from "@mui/material/Rating";
 import {
-  Calendar,
-  Users,
-  Shield,
-  Clock,
-  CheckCircle,
   ArrowRight,
-  Star,
-  Phone,
+  Calendar,
+  CheckCircle,
+  Clock,
   MapPin,
+  Phone,
+  Shield,
+  Users
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 const steps = [
   {
