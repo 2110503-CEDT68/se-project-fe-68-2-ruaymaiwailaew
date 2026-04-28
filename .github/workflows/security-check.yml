@@ -34,12 +34,20 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Run TruffleHog
+      - name: Run TruffleHog (push/pr diff)
+        if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: ${{ github.sha }}
+          base: ${{ github.event.pull_request.base.sha || github.event.before }}
+          head: ${{ github.event.pull_request.head.sha || github.sha }}
+          extra_args: --only-verified
+
+      - name: Run TruffleHog (workflow_run full scan)
+        if: ${{ github.event_name == 'workflow_run' }}
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
           extra_args: --only-verified
 
   codeql-scan:
